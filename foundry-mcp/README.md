@@ -4,165 +4,202 @@ MCP (Model Context Protocol) server that bootstraps Now Assist POC projects with
 
 ## Overview
 
-Foundry MCP provides a single tool (`foundry_init`) that creates new project directories with everything needed to start building Now Assist POCs immediately.
+Foundry MCP provides tools that help the AI Foundry team rapidly create and manage Now Assist POC projects. The server interfaces with Claude Code to provide project bootstrapping capabilities.
 
-## Installation
+**Current Status:** MVP Complete - `foundry_init` tool operational
 
-### From npm (once published)
+## Quick Start
+
+### 1. Install Dependencies
+
 ```bash
-npm install -g foundry-mcp
-```
-
-### From source
-```bash
-git clone https://github.com/ai-foundry/foundry-mcp.git
 cd foundry-mcp
 npm install
+```
+
+### 2. Build
+
+```bash
 npm run build
 ```
 
-## Configuration for Claude Code
+### 3. Configure Claude Code
 
-Add to your Claude Code MCP settings (`~/.claude/settings.json` or project `.claude/settings.json`):
+Add to your MCP configuration (`.mcp.json` or `~/.claude/config.json`):
 
-### Using npm global install
-```json
-{
-  "mcpServers": {
-    "foundry": {
-      "command": "foundry-mcp"
-    }
-  }
-}
-```
-
-### Using local install
 ```json
 {
   "mcpServers": {
     "foundry": {
       "command": "node",
-      "args": ["/path/to/foundry-mcp/dist/index.js"]
+      "args": ["/absolute/path/to/foundry-mcp/dist/index.js"]
     }
   }
 }
 ```
 
-### Using npx
-```json
-{
-  "mcpServers": {
-    "foundry": {
-      "command": "npx",
-      "args": ["foundry-mcp"]
-    }
-  }
-}
-```
-
-## Usage
-
-Once configured, use the `foundry_init` tool in Claude Code:
+### 4. Use in Claude Code
 
 ```
-# Basic usage - creates project in current directory
-foundry_init my-poc
-
-# Specify parent directory
-foundry_init my-poc --path /path/to/projects
-
-# Use local golden repo (for development/offline use)
-foundry_init my-poc --goldenPath /path/to/foundry-golden
+Create a new Now Assist POC called "my-project"
 ```
 
-## What Gets Created
+## Tools
 
+### `foundry_init` (MVP)
+
+Bootstrap a new Now Assist POC project with pre-loaded resources.
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `projectName` | Yes | Project directory name (alphanumeric, hyphens, underscores) |
+| `path` | No | Parent directory (defaults to current working directory) |
+| `goldenPath` | No | Local path to foundry-golden repo (for development/offline) |
+
+**Creates:**
 ```
-my-poc/
-├── CLAUDE.md                    # SPARC methodology template
-├── .gitignore                   # Standard gitignore
+project-name/
+├── CLAUDE.md           # SPARC methodology template
+├── .gitignore          # Standard ignores
 └── .claude/
-    ├── context/
-    │   ├── now-assist-platform.md
-    │   ├── genai-framework.md
-    │   └── agentic-patterns.md
-    └── skills/
-        ├── now-assist-skill-builder/
-        │   ├── SKILL.md
-        │   └── examples/
-        └── api-integration/
-            ├── SKILL.md
-            └── examples/
+    ├── context/        # Now Assist, GenAI, Agentic patterns
+    └── skills/         # Skill builder, API integration
 ```
 
-## Tool Reference
+### Planned Tools
 
-### foundry_init
+| Tool | Phase | Description |
+|------|-------|-------------|
+| `foundry_list` | 2 | List available resources in golden repo |
+| `foundry_add` | 2 | Add resource to existing project |
+| `foundry_sync` | 2 | Update project resources to latest |
+| `foundry_info` | 3 | Get detailed resource information |
+| `foundry_search` | 3 | Search across all resources |
 
-Bootstrap a new Now Assist POC project.
+## Project Structure
 
-**Parameters:**
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `projectName` | string | Yes | Name of the project directory to create |
-| `path` | string | No | Parent directory (defaults to cwd) |
-| `goldenPath` | string | No | Local path to foundry-golden repo |
-
-**Returns:**
-- Success message with project path and next steps
-- Error message if project creation fails
-
-## Golden Repository
-
-The server fetches resources from the [foundry-golden](https://github.com/ai-foundry/foundry-golden) repository. By default, it:
-
-1. Clones the repo to `~/.foundry/golden` on first use
-2. Caches for 24 hours before checking for updates
-3. Falls back to cached version if network unavailable
-
-For offline or development use, specify `goldenPath` to use a local copy.
+```
+foundry-mcp/
+├── src/
+│   └── index.ts        # MCP server implementation
+├── dist/               # Built JavaScript (ready to use)
+│   └── index.js
+├── test/
+│   └── validate-init.ts  # Acceptance test suite
+├── package.json
+├── tsconfig.json
+├── README.md           # This file
+├── HOWTO.md            # Development guide
+└── DEVELOPMENT.md      # Architecture & contribution guide
+```
 
 ## Development
 
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm install` | Install dependencies |
+| `npm run build` | Compile TypeScript to JavaScript |
+| `npm run dev` | Watch mode for development |
+| `npm test` | Run acceptance tests |
+| `npm run test:keep` | Run tests, keep output for inspection |
+
+### Testing
+
+Run the acceptance test suite:
+
 ```bash
-# Install dependencies
-npm install
-
-# Build
-npm run build
-
-# Watch mode
-npm run dev
-
-# Run locally
-node dist/index.js
+npm test
 ```
 
-### Testing with Claude Code
+Tests validate all MVP acceptance criteria:
+- Project directory creation
+- Context files present (3 files)
+- Skills present (2 directories)
+- CLAUDE.md with SPARC structure
+- MCP server built
+- No additional setup required
 
-1. Build the project: `npm run build`
-2. Add to Claude Code settings with local path
-3. Restart Claude Code
-4. Test: "Use foundry_init to create a test project"
+### Local Development Workflow
+
+1. Make changes to `src/index.ts`
+2. Build: `npm run build`
+3. Test manually in Claude Code
+4. Run acceptance tests: `npm test`
+5. Commit changes
 
 ## Architecture
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │   Claude Code   │────▶│   foundry-mcp    │────▶│ foundry-golden  │
-│                 │◀────│   (MCP Server)   │◀────│   (GitHub)      │
+│                 │◀────│   (MCP Server)   │◀────│   (Content)     │
 └─────────────────┘     └──────────────────┘     └─────────────────┘
-                               │
-                               ▼
-                        ┌──────────────────┐
-                        │  New Project     │
-                        │  my-poc/         │
-                        │  ├── CLAUDE.md   │
-                        │  └── .claude/    │
-                        └──────────────────┘
+        │                       │
+        │                       ▼
+        │               ┌──────────────────┐
+        │               │  ~/.foundry/     │
+        │               │  golden/         │
+        │               │  (cached repo)   │
+        │               └──────────────────┘
+        │
+        ▼
+┌──────────────────┐
+│  New Project     │
+│  my-poc/         │
+│  ├── CLAUDE.md   │
+│  └── .claude/    │
+└──────────────────┘
 ```
+
+### Golden Repo Caching
+
+The server manages a local cache of the golden repository:
+
+1. **First use**: Clones from GitHub to `~/.foundry/golden/`
+2. **Subsequent use**: Uses cached copy
+3. **Cache refresh**: Pulls updates if cache > 24 hours old
+4. **Offline fallback**: Uses stale cache if network unavailable
+5. **Development**: Use `goldenPath` parameter to bypass cache
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `HOME` / `USERPROFILE` | User home directory | System default |
+
+### Cache Location
+
+- macOS/Linux: `~/.foundry/golden/`
+- Windows: `%USERPROFILE%\.foundry\golden\`
+
+## Error Handling
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "Invalid project name" | Special characters in name | Use only letters, numbers, hyphens, underscores |
+| "Project directory already exists" | Name collision | Choose different name or delete existing |
+| "Failed to clone golden repository" | Network/GitHub issue | Use `goldenPath` for local golden repo |
+| "Golden repo missing context directory" | Corrupted cache | Delete `~/.foundry/golden/` and retry |
+
+## Dependencies
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `@modelcontextprotocol/sdk` | ^1.0.0 | MCP server framework |
+| `typescript` | ^5.3.0 | Development |
+| `tsx` | ^4.7.0 | Test runner |
 
 ## License
 
 MIT
+
+## See Also
+
+- [HOWTO.md](HOWTO.md) - Detailed development guide
+- [DEVELOPMENT.md](DEVELOPMENT.md) - Architecture and contribution guidelines
+- [Parent README](../README.md) - Overall project documentation
+- [foundry-golden](../foundry-golden/) - Golden repository content
