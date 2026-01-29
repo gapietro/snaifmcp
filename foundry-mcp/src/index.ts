@@ -17,7 +17,7 @@ const execAsync = promisify(exec);
 // Configuration
 const CONFIG = {
   // GitHub repo URL for foundry-golden
-  goldenRepoUrl: "https://github.com/ai-foundry/foundry-golden.git",
+  goldenRepoUrl: "https://github.com/gapietro/foundry-golden.git",
   // Local cache directory for the golden repo
   cacheDir: path.join(
     process.env.HOME || process.env.USERPROFILE || "~",
