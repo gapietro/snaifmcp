@@ -8,6 +8,8 @@ This repository contains pre-loaded context, skills, and templates that accelera
 
 **Current Status:** MVP content complete
 
+**Access:** This repository is **private**. Team members must authenticate with GitHub CLI (`gh auth login`) before using Foundry tools.
+
 ## Quick Reference
 
 | Resource Type | Count | Location |
