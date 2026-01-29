@@ -23,6 +23,7 @@ A practical guide for day-to-day use of Foundry to bootstrap and develop Now Ass
 - Node.js 18+ installed
 - Claude Code CLI installed and authenticated
 - Access to this repository
+- **GitHub CLI authenticated** - The golden repo is private. Run `gh auth login` first.
 
 ### One-Time Configuration
 
@@ -300,14 +301,30 @@ rm -rf manual-test/
 2. Check your MCP configuration path is absolute
 3. Restart Claude Code
 
-### "Failed to clone golden repository"
+### "Failed to clone golden repository" or "GitHub authentication required"
 
-**Cause:** GitHub repo not accessible or doesn't exist yet
+**Cause:** Not authenticated with GitHub CLI, or repo not accessible
 
-**Fix:** Use the `goldenPath` parameter to point to local golden repo:
-```
-Create a POC using goldenPath /path/to/snaifmcp/foundry-golden
-```
+**Fix:**
+1. Check GitHub CLI auth status:
+   ```bash
+   gh auth status
+   ```
+
+2. If not logged in, authenticate:
+   ```bash
+   gh auth login
+   ```
+
+3. Verify access to the private repo:
+   ```bash
+   gh repo view gapietro/foundry-golden
+   ```
+
+4. Alternatively, use the `goldenPath` parameter to point to local golden repo:
+   ```
+   Create a POC using goldenPath /path/to/snaifmcp/foundry-golden
+   ```
 
 ### "Project directory already exists"
 

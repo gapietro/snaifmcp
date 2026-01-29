@@ -23,6 +23,7 @@ Detailed guide for developing, testing, and extending the Foundry MCP server.
 - npm 9 or higher
 - TypeScript knowledge
 - Claude Code installed (for integration testing)
+- **GitHub CLI authenticated** (`gh auth login`) - required for private golden repo access
 
 ### Initial Setup
 
@@ -278,10 +279,12 @@ console.error("Debug: Processing request", request.params);
 
 #### "Golden repo clone fails"
 
-1. Check network connectivity
-2. Verify GitHub URL is accessible
-3. Try with `goldenPath` parameter
-4. Check `~/.foundry/golden/` permissions
+1. **Check GitHub CLI auth**: Run `gh auth status` - you must be logged in
+2. **Re-authenticate if needed**: Run `gh auth login`
+3. **Verify repo access**: Run `gh repo view gapietro/foundry-golden`
+4. Check network connectivity
+5. Try with `goldenPath` parameter to use local copy
+6. Check `~/.foundry/golden/` permissions
 
 #### "Project creation fails silently"
 

@@ -10,6 +10,20 @@ Foundry MCP provides tools that help the AI Foundry team rapidly create and mana
 
 ## Quick Start
 
+### Prerequisites
+
+**GitHub CLI Authentication Required**
+
+The golden repository (`gapietro/foundry-golden`) is private. You must authenticate with GitHub CLI before using Foundry:
+
+```bash
+# Check if already authenticated
+gh auth status
+
+# If not, log in
+gh auth login
+```
+
 ### 1. Install Dependencies
 
 ```bash
@@ -157,11 +171,13 @@ Tests validate all MVP acceptance criteria:
 
 The server manages a local cache of the golden repository:
 
-1. **First use**: Clones from GitHub to `~/.foundry/golden/`
+1. **First use**: Clones from GitHub to `~/.foundry/golden/` (uses `gh repo clone` for private repo auth)
 2. **Subsequent use**: Uses cached copy
 3. **Cache refresh**: Pulls updates if cache > 24 hours old
 4. **Offline fallback**: Uses stale cache if network unavailable
 5. **Development**: Use `goldenPath` parameter to bypass cache
+
+**Note:** Authentication uses GitHub CLI (`gh`). Team members must run `gh auth login` once before using Foundry.
 
 ## Configuration
 
@@ -182,7 +198,8 @@ The server manages a local cache of the golden repository:
 |-------|-------|----------|
 | "Invalid project name" | Special characters in name | Use only letters, numbers, hyphens, underscores |
 | "Project directory already exists" | Name collision | Choose different name or delete existing |
-| "Failed to clone golden repository" | Network/GitHub issue | Use `goldenPath` for local golden repo |
+| "GitHub authentication required" | Not logged into GitHub CLI | Run `gh auth login` first |
+| "Failed to clone golden repository" | Network/GitHub issue | Check `gh auth status`, or use `goldenPath` for local golden repo |
 | "Golden repo missing context directory" | Corrupted cache | Delete `~/.foundry/golden/` and retry |
 
 ## Dependencies

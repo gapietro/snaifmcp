@@ -6,6 +6,11 @@ Foundry is an MCP (Model Context Protocol) server that helps the AI Foundry team
 
 ## Quick Start
 
+### Prerequisites
+
+- **GitHub CLI authenticated**: The golden repo is private. Run `gh auth login` first.
+- **Node.js 18+**: Required to run the MCP server.
+
 ### 1. Configure Claude Code
 
 Add Foundry to your Claude Code MCP configuration:
