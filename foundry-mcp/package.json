@@ -1,0 +1,41 @@
+{
+  "name": "foundry-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for bootstrapping Now Assist POC projects with Foundry",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "foundry-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch",
+    "test": "tsx test/validate-init.ts",
+    "test:keep": "tsx test/validate-init.ts --keep",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "servicenow",
+    "now-assist",
+    "foundry",
+    "claude-code"
+  ],
+  "author": "AI Foundry Team",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist"
+  ]
+}

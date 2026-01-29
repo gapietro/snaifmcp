@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "foundry": {
+      "command": "node",
+      "args": ["/Users/gpietro/projects/snaifmcp/foundry-mcp/dist/index.js"]
+    }
+  }
+}
