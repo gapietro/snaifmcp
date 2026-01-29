@@ -2,43 +2,28 @@
 
 ## Pre-Demo Setup (Do Before the Demo)
 
-### 1. Build the MCP Server
+### 1. Verify GitHub CLI Authentication
+
+The MCP server uses the GitHub CLI (`gh`) to clone the private golden repo. Ensure you're authenticated:
+
+```bash
+# Check auth status
+gh auth status
+
+# If not logged in:
+gh auth login
+```
+
+### 2. Build the MCP Server (if not already built)
 ```bash
 cd /Users/gpietro/projects/snaifmcp/foundry-mcp
 npm install
 npm run build
 ```
 
-### 2. Push foundry-golden to GitHub (Option A - Recommended)
-
-Create a new repo at https://github.com/gapietro/foundry-golden (or ai-foundry org if available).
-
-```bash
-cd /Users/gpietro/projects/snaifmcp/foundry-golden
-git init
-git add .
-git commit -m "Initial commit: Foundry golden repo with Now Assist context and skills"
-git remote add origin https://github.com/gapietro/foundry-golden.git
-git push -u origin main
-```
-
-Then update the URL in `foundry-mcp/src/index.ts`:
-```typescript
-const CONFIG = {
-  goldenRepoUrl: "https://github.com/gapietro/foundry-golden.git",
-  // ... rest unchanged
-};
-```
-
-Rebuild: `npm run build`
-
-### 2. Alternative: Use Local Path (Option B - Quick)
-
-Skip GitHub setup entirely - you'll use the `goldenPath` parameter during the demo.
-
 ### 3. Verify MCP Server is Configured
 
-Check `.mcp.json` exists in your working directory:
+The `.mcp.json` should exist in your project directory:
 ```json
 {
   "mcpServers": {
@@ -55,6 +40,25 @@ Check `.mcp.json` exists in your working directory:
 mkdir -p ~/foundry-demo
 cd ~/foundry-demo
 ```
+
+### 5. Test the Setup (Optional but Recommended)
+```bash
+cd ~/foundry-demo
+claude
+# Say: "Initialize a Foundry project called test-project"
+# Verify it works, then delete: rm -rf test-project
+```
+
+---
+
+## GitHub Repos (Already Set Up)
+
+| Repo | URL | Visibility |
+|------|-----|------------|
+| Main project | https://github.com/gapietro/snaifmcp | Public |
+| Golden repo | https://github.com/gapietro/foundry-golden | **Private** |
+
+**Authentication:** The MCP server uses `gh repo clone` which automatically uses your GitHub CLI credentials. Team members need `gh auth login` before using Foundry.
 
 ---
 
@@ -85,12 +89,12 @@ Claude will call:
 foundry_init(projectName: "customer-assist-poc")
 ```
 
-**If using local golden repo (Option B), say:**
+**Alternative: Use local golden repo (if auth issues):**
 > "Initialize a new Foundry project called customer-assist-poc using the golden repo at /Users/gpietro/projects/snaifmcp/foundry-golden"
 
 **Show the result:**
 ```bash
-# Exit Claude Code temporarily
+# Exit Claude Code temporarily (Ctrl+C or type 'exit')
 tree customer-assist-poc/
 ```
 
@@ -202,15 +206,18 @@ If the MCP tool doesn't work, you can manually show the golden repo structure:
 tree /Users/gpietro/projects/snaifmcp/foundry-golden/
 
 # Show a context file
-cat /Users/gpietro/projects/snaifmcp/foundry-golden/context/now-assist-platform.md | head -50
+head -50 /Users/gpietro/projects/snaifmcp/foundry-golden/context/now-assist-platform.md
 
 # Show a skill
-cat /Users/gpietro/projects/snaifmcp/foundry-golden/skills/now-assist-skill-builder/SKILL.md | head -50
+head -50 /Users/gpietro/projects/snaifmcp/foundry-golden/skills/now-assist-skill-builder/SKILL.md
 ```
 
 ---
 
 ## Q&A Prep
+
+**Q: "How do team members authenticate?"**
+> "They run `gh auth login` once on their machine. The MCP server uses GitHub CLI for authentication, so it works with SSO, 2FA, and whatever auth your org uses."
 
 **Q: "How do we add new skills or context?"**
 > "That's Phase 2. You'll be able to run `foundry add skill @foundry/new-skill` to add resources to an existing project."
@@ -227,9 +234,24 @@ cat /Users/gpietro/projects/snaifmcp/foundry-golden/skills/now-assist-skill-buil
 **Q: "How do we update the golden repo?"**
 > "Standard git workflow. Update context or skills in foundry-golden, commit, push. New projects automatically get the latest. Existing projects can run `foundry sync` (coming in Phase 2)."
 
+**Q: "What about offline use?"**
+> "The golden repo is cached locally in `~/.foundry/golden/` for 24 hours. If you can't reach GitHub, it uses the cached version."
+
 ---
 
 ## Troubleshooting
+
+### GitHub Auth Issues
+```bash
+# Check if authenticated
+gh auth status
+
+# Re-authenticate if needed
+gh auth login
+
+# Verify access to private repo
+gh repo view gapietro/foundry-golden
+```
 
 ### MCP Server Not Found
 ```bash
@@ -243,6 +265,11 @@ cd /Users/gpietro/projects/snaifmcp/foundry-mcp && npm run build
 ### Golden Repo Clone Fails
 Use the `goldenPath` parameter as a fallback:
 > "Initialize project my-poc using golden repo at /Users/gpietro/projects/snaifmcp/foundry-golden"
+
+### Clear Cache (Force Re-clone)
+```bash
+rm -rf ~/.foundry/golden
+```
 
 ### Permission Errors
 ```bash

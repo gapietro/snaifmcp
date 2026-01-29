@@ -16,8 +16,8 @@ const execAsync = promisify(exec);
 
 // Configuration
 const CONFIG = {
-  // GitHub repo URL for foundry-golden
-  goldenRepoUrl: "https://github.com/gapietro/foundry-golden.git",
+  // GitHub repo for foundry-golden (owner/repo format for gh CLI)
+  goldenRepo: "gapietro/foundry-golden",
   // Local cache directory for the golden repo
   cacheDir: path.join(
     process.env.HOME || process.env.USERPROFILE || "~",
@@ -93,6 +93,7 @@ async function updateCacheTimestamp(): Promise<void> {
 
 /**
  * Clone or update the golden repository
+ * Uses GitHub CLI (gh) for authentication with private repos
  */
 async function ensureGoldenRepo(): Promise<string> {
   const exists = await directoryExists(CONFIG.cacheDir);
@@ -111,15 +112,21 @@ async function ensureGoldenRepo(): Promise<string> {
       }
     }
   } else {
-    // Clone fresh
+    // Clone fresh using gh CLI (handles auth for private repos)
     await fs.mkdir(path.dirname(CONFIG.cacheDir), { recursive: true });
     try {
-      await execAsync(`git clone ${CONFIG.goldenRepoUrl} "${CONFIG.cacheDir}"`);
+      // Use gh repo clone which handles authentication automatically
+      await execAsync(`gh repo clone ${CONFIG.goldenRepo} "${CONFIG.cacheDir}"`);
       await updateCacheTimestamp();
     } catch (error) {
-      throw new Error(
-        `Failed to clone golden repository: ${error instanceof Error ? error.message : String(error)}`
-      );
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      // Provide helpful error message for auth issues
+      if (errorMsg.includes("gh auth") || errorMsg.includes("not logged")) {
+        throw new Error(
+          `GitHub authentication required. Run 'gh auth login' first, then try again.`
+        );
+      }
+      throw new Error(`Failed to clone golden repository: ${errorMsg}`);
     }
   }
 
