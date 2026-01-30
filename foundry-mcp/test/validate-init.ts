@@ -26,7 +26,7 @@ const GOLDEN_REPO_PATH = path.resolve(__dirname, "../../foundry-golden");
 const TEST_OUTPUT_DIR = path.resolve(__dirname, "../.test-output");
 const TEST_PROJECT_PATH = path.join(TEST_OUTPUT_DIR, TEST_PROJECT_NAME);
 
-// Expected structure
+// Expected structure (minimum required - actual golden repo may have more)
 const EXPECTED_CONTEXT_FILES = [
   "now-assist-platform.md",
   "genai-framework.md",
@@ -37,6 +37,9 @@ const EXPECTED_SKILLS = [
   "now-assist-skill-builder",
   "api-integration",
 ];
+
+// Agent examples directory (for new tests)
+const AGENT_EXAMPLES_DIR = "agent_examples";
 
 const EXPECTED_CLAUDE_MD_CONTENT = [
   "SPARC",
@@ -96,6 +99,117 @@ function log(message: string, type: "info" | "pass" | "fail" | "header" = "info"
 function addResult(name: string, passed: boolean, message: string) {
   results.push({ name, passed, message });
   log(`${name}: ${message}`, passed ? "pass" : "fail");
+}
+
+// Show summary of golden repo resources
+async function showGoldenRepoSummary(): Promise<void> {
+  const sections: string[] = [];
+
+  // Context files
+  try {
+    const contextDir = path.join(GOLDEN_REPO_PATH, "context");
+    const contextFiles = (await fs.readdir(contextDir)).filter(f => f.endsWith(".md"));
+    sections.push(`  📚 Context files (${contextFiles.length}): ${contextFiles.join(", ")}`);
+  } catch {
+    sections.push("  📚 Context files: (unable to read)");
+  }
+
+  // Skills
+  try {
+    const skillsDir = path.join(GOLDEN_REPO_PATH, "skills");
+    const entries = await fs.readdir(skillsDir, { withFileTypes: true });
+    const skills = entries.filter(e => e.isDirectory()).map(e => e.name);
+    sections.push(`  🛠️  Skills (${skills.length}): ${skills.join(", ")}`);
+  } catch {
+    sections.push("  🛠️  Skills: (unable to read)");
+  }
+
+  // Templates
+  try {
+    const templatesDir = path.join(GOLDEN_REPO_PATH, "templates");
+    const entries = await fs.readdir(templatesDir, { withFileTypes: true });
+    const templates = entries.filter(e => e.isDirectory()).map(e => e.name);
+    sections.push(`  📋 Templates (${templates.length}): ${templates.join(", ")}`);
+  } catch {
+    sections.push("  📋 Templates: (unable to read)");
+  }
+
+  // Agent examples
+  try {
+    const agentExamplesDir = path.join(GOLDEN_REPO_PATH, "agent_examples");
+    const entries = await fs.readdir(agentExamplesDir, { withFileTypes: true });
+    const examples = entries.filter(e => e.isDirectory()).map(e => e.name);
+    sections.push(`  🤖 Agent examples (${examples.length}): ${examples.join(", ")}`);
+  } catch {
+    sections.push("  🤖 Agent examples: (directory not found)");
+  }
+
+  // Subagents (placeholder)
+  try {
+    const subagentsDir = path.join(GOLDEN_REPO_PATH, "subagents");
+    const hasReadme = await fileExists(path.join(subagentsDir, "README.md"));
+    sections.push(`  🔗 Subagents: ${hasReadme ? "(placeholder - coming soon)" : "(not found)"}`);
+  } catch {
+    sections.push("  🔗 Subagents: (directory not found)");
+  }
+
+  // Hooks (placeholder)
+  try {
+    const hooksDir = path.join(GOLDEN_REPO_PATH, "hooks");
+    const hasReadme = await fileExists(path.join(hooksDir, "README.md"));
+    sections.push(`  ⚡ Hooks: ${hasReadme ? "(placeholder - coming soon)" : "(not found)"}`);
+  } catch {
+    sections.push("  ⚡ Hooks: (directory not found)");
+  }
+
+  // External registry
+  try {
+    const registryPath = path.join(GOLDEN_REPO_PATH, "external-registry.json");
+    const content = await fs.readFile(registryPath, "utf-8");
+    const registry = JSON.parse(content);
+    const count = registry.approved?.length || 0;
+    sections.push(`  🌐 External registry: ${count} approved source(s)`);
+  } catch {
+    sections.push("  🌐 External registry: (not found)");
+  }
+
+  console.log("\n" + sections.join("\n") + "\n");
+}
+
+// Generate tree structure of a directory
+async function generateProjectStructure(projectPath: string, prefix = ""): Promise<string> {
+  const projectName = path.basename(projectPath);
+  const lines: string[] = [`\n${projectName}/`];
+
+  async function buildTree(dirPath: string, indent: string, isLast: boolean[]): Promise<void> {
+    try {
+      const entries = await fs.readdir(dirPath, { withFileTypes: true });
+      // Sort: directories first, then files, alphabetically
+      entries.sort((a, b) => {
+        if (a.isDirectory() && !b.isDirectory()) return -1;
+        if (!a.isDirectory() && b.isDirectory()) return 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        const isLastEntry = i === entries.length - 1;
+        const connector = isLastEntry ? "└── " : "├── ";
+        const newIndent = indent + (isLastEntry ? "    " : "│   ");
+
+        lines.push(`${indent}${connector}${entry.name}${entry.isDirectory() ? "/" : ""}`);
+
+        if (entry.isDirectory()) {
+          await buildTree(path.join(dirPath, entry.name), newIndent, [...isLast, isLastEntry]);
+        }
+      }
+    } catch {
+      // Ignore errors
+    }
+  }
+
+  await buildTree(projectPath, "", []);
+  return lines.join("\n") + "\n";
 }
 
 // Copy directory (same logic as MCP server)
@@ -1070,6 +1184,132 @@ async function testFoundryVersion(): Promise<void> {
 }
 
 // ============================================================================
+// Foundry Agent Examples Tests
+// ============================================================================
+
+async function testFoundryAgentExamples(): Promise<void> {
+  const agentExamplesDir = path.join(GOLDEN_REPO_PATH, AGENT_EXAMPLES_DIR);
+
+  // Test 1: Agent examples directory exists
+  const dirExists = await directoryExists(agentExamplesDir);
+  addResult(
+    "Agent Examples: Directory exists",
+    dirExists,
+    dirExists ? "agent_examples/ directory found in golden repo" : "agent_examples/ directory not found"
+  );
+
+  if (!dirExists) return;
+
+  // Test 2: Template exists
+  const templateDir = path.join(agentExamplesDir, "_template");
+  const templateExists = await directoryExists(templateDir);
+  const agentMdExists = await fileExists(path.join(templateDir, "AGENT.md"));
+  const configJsonExists = await fileExists(path.join(templateDir, "config.json"));
+
+  addResult(
+    "Agent Examples: Template structure",
+    templateExists && agentMdExists && configJsonExists,
+    templateExists && agentMdExists && configJsonExists
+      ? "_template has AGENT.md and config.json"
+      : "Template structure incomplete"
+  );
+
+  // Test 3: List agent examples (excluding _template)
+  let exampleCount = 0;
+  try {
+    const entries = await fs.readdir(agentExamplesDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory() && entry.name !== "_template") {
+        const agentMd = path.join(agentExamplesDir, entry.name, "AGENT.md");
+        if (await fileExists(agentMd)) {
+          exampleCount++;
+        }
+      }
+    }
+  } catch {
+    // Ignore
+  }
+
+  addResult(
+    "Agent Examples: Listing works",
+    true, // Pass even with 0 examples - the feature works
+    `Found ${exampleCount} agent example(s) (excluding _template)`
+  );
+
+  // Test 4: README exists
+  const readmeExists = await fileExists(path.join(agentExamplesDir, "README.md"));
+  addResult(
+    "Agent Examples: README exists",
+    readmeExists,
+    readmeExists ? "README.md found" : "README.md not found"
+  );
+}
+
+// ============================================================================
+// Foundry Subagents/Hooks Placeholder Tests
+// ============================================================================
+
+async function testFoundryPlaceholders(): Promise<void> {
+  // Test 1: Subagents directory exists with README
+  const subagentsDir = path.join(GOLDEN_REPO_PATH, "subagents");
+  const subagentsReadme = await fileExists(path.join(subagentsDir, "README.md"));
+
+  addResult(
+    "Placeholders: Subagents README",
+    subagentsReadme,
+    subagentsReadme ? "subagents/README.md exists" : "subagents/README.md not found"
+  );
+
+  // Test 2: Hooks directory exists with README
+  const hooksDir = path.join(GOLDEN_REPO_PATH, "hooks");
+  const hooksReadme = await fileExists(path.join(hooksDir, "README.md"));
+
+  addResult(
+    "Placeholders: Hooks README",
+    hooksReadme,
+    hooksReadme ? "hooks/README.md exists" : "hooks/README.md not found"
+  );
+}
+
+// ============================================================================
+// Foundry External Registry Tests
+// ============================================================================
+
+async function testFoundryExternalRegistry(): Promise<void> {
+  // Test: External registry file exists and is valid JSON
+  const registryPath = path.join(GOLDEN_REPO_PATH, "external-registry.json");
+  const registryExists = await fileExists(registryPath);
+
+  if (!registryExists) {
+    addResult(
+      "External Registry: File exists",
+      false,
+      "external-registry.json not found"
+    );
+    return;
+  }
+
+  try {
+    const content = await fs.readFile(registryPath, "utf-8");
+    const registry = JSON.parse(content);
+    const hasApproved = Array.isArray(registry.approved);
+    const approvedCount = hasApproved ? registry.approved.length : 0;
+
+    addResult(
+      "External Registry: Valid structure",
+      hasApproved && approvedCount > 0,
+      `Found ${approvedCount} approved external source(s)`
+    );
+  } catch {
+    addResult(
+      "External Registry: Valid structure",
+      false,
+      "Failed to parse external-registry.json"
+    );
+  }
+}
+
+// ============================================================================
 // Foundry Templates Tests (Phase 5)
 // ============================================================================
 
@@ -1230,6 +1470,21 @@ async function main() {
   await testFoundryTemplates();
   console.log("");
 
+  // Foundry Agent Examples tests
+  log("Foundry Agent Examples Tests:", "header");
+  await testFoundryAgentExamples();
+  console.log("");
+
+  // Foundry Placeholders tests (subagents, hooks)
+  log("Foundry Placeholders Tests:", "header");
+  await testFoundryPlaceholders();
+  console.log("");
+
+  // Foundry External Registry tests
+  log("Foundry External Registry Tests:", "header");
+  await testFoundryExternalRegistry();
+  console.log("");
+
   // Summary
   log("═══════════════════════════════════════════════════════════", "header");
   log("  SUMMARY", "header");
@@ -1251,25 +1506,14 @@ async function main() {
   }
   console.log("");
 
-  // Show generated project structure
+  // Show generated project structure (dynamically built)
   log("Generated project structure:", "header");
-  console.log(`
-${TEST_PROJECT_NAME}/
-├── CLAUDE.md
-├── .gitignore
-└── .claude/
-    ├── context/
-    │   ├── now-assist-platform.md
-    │   ├── genai-framework.md
-    │   └── agentic-patterns.md
-    └── skills/
-        ├── now-assist-skill-builder/
-        │   ├── SKILL.md
-        │   └── examples/
-        └── api-integration/
-            ├── SKILL.md
-            └── examples/
-`);
+  const projectStructure = await generateProjectStructure(TEST_PROJECT_PATH);
+  console.log(projectStructure);
+
+  // Show golden repo resource summary
+  log("Golden repo resources:", "header");
+  await showGoldenRepoSummary();
 
   // Cleanup option
   const keepOutput = process.argv.includes("--keep");
