@@ -13,6 +13,8 @@
     "dev": "tsc --watch",
     "test": "tsx test/validate-init.ts",
     "test:keep": "tsx test/validate-init.ts --keep",
+    "test:servicenow": "tsx test/validate-servicenow.ts",
+    "test:all": "npm run test && npm run test:servicenow",
     "prepare": "npm run build"
   },
   "keywords": [
