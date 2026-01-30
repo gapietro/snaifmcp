@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-01-30",
+  "approved": [
+    {
+      "name": "superpowers",
+      "repo": "obra/superpowers",
+      "description": "Agentic skills framework with design-first workflow, TDD, and subagent-driven development",
+      "category": "workflow"
+    },
+    {
+      "name": "servicenow-utils",
+      "repo": "gapietro/servicenow-utils",
+      "description": "Common ServiceNow utility scripts and patterns",
+      "category": "utilities"
+    },
+    {
+      "name": "now-assist-testing",
+      "repo": "gapietro/now-assist-testing",
+      "description": "Testing patterns for Now Assist skills",
+      "category": "testing"
+    }
+  ]
+}
