@@ -19,6 +19,9 @@ This repository contains pre-loaded context, skills, and templates that accelera
 | Context files | 6 | `context/` |
 | Skills | 6 | `skills/` |
 | Templates | 3 | `templates/` |
+| Agent Examples | 0 | `agent_examples/` |
+| Sub-Agents | - | `subagents/` (placeholder) |
+| Hooks | - | `hooks/` (placeholder) |
 
 ---
 
@@ -54,13 +57,23 @@ foundry-golden/
 │   └── deployment-automation/
 │       ├── SKILL.md
 │       └── examples/
-└── templates/                    # Project templates (3)
-    ├── sparc-starter/            # Full setup (default)
-    │   └── CLAUDE.md
-    ├── standard/                 # Context only
-    │   └── CLAUDE.md
-    └── minimal/                  # Bare-bones
-        └── CLAUDE.md
+├── templates/                    # Project templates (3)
+│   ├── sparc-starter/            # Full setup (default)
+│   │   └── CLAUDE.md
+│   ├── standard/                 # Context only
+│   │   └── CLAUDE.md
+│   └── minimal/                  # Bare-bones
+│       └── CLAUDE.md
+├── agent_examples/               # ServiceNow agent implementations
+│   ├── README.md                 # Structure and contribution guide
+│   └── _template/                # Starter template for new examples
+│       ├── AGENT.md              # Documentation template
+│       ├── config.json           # Metadata template
+│       └── src/                  # ServiceNow artifacts
+├── subagents/                    # Claude sub-agents (placeholder)
+│   └── README.md                 # Future use documentation
+└── hooks/                        # Lifecycle hooks (placeholder)
+    └── README.md                 # Future use documentation
 ```
 
 ---
@@ -86,8 +99,8 @@ Skills in `skills/` teach Claude how to perform specific tasks.
 
 | Skill | Description | Examples Included |
 |-------|-------------|-------------------|
-| `now-assist-skill-builder` | Creating Now Assist skills | Manifest, testing, deployment |
-| `api-integration` | ServiceNow REST APIs | Inbound/outbound patterns |
+| `now-assist-skill-builder` | Creating Now Assist skills | Case summarizer skill |
+| `api-integration` | ServiceNow REST APIs | Outbound REST client |
 | `servicenow-troubleshooting` | Debug with tools | Skill failure, performance |
 | `agent-builder` | Creating AI Agents | Incident triage agent |
 | `testing-patterns` | Unit testing, ATF | Business rule tests |
@@ -112,6 +125,40 @@ Templates in `templates/` provide project starting points.
 | sparc-starter | Yes (6) | Yes (6) |
 | standard | Yes (6) | No |
 | minimal | No | No |
+
+---
+
+## Agent Examples
+
+Complete, working ServiceNow agent implementations for reference and learning.
+
+| Status | Description |
+|--------|-------------|
+| **Current** | Template structure ready, no examples yet |
+| **Planned** | incident-summarizer, knowledge-recommender |
+
+Each agent example includes:
+- `AGENT.md` - Documentation, architecture, lessons learned
+- `config.json` - Metadata (type, complexity, platform requirements)
+- `src/` - ServiceNow artifacts (skills, flows, scripts)
+
+See [agent_examples/README.md](agent_examples/README.md) for details.
+
+---
+
+## Placeholders (Future)
+
+### Sub-Agents
+
+Directory: `subagents/`
+
+Future home for Claude Code sub-agents for workflow orchestration. Currently, the team uses [Superpowers](https://github.com/obra/superpowers) for this purpose.
+
+### Hooks
+
+Directory: `hooks/`
+
+Future home for lifecycle hooks (post-init, pre-commit, etc.). Not yet implemented.
 
 ---
 
