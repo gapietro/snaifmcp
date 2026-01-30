@@ -302,6 +302,7 @@
             <li><a href="#part1">Part 1: Project Bootstrap</a> <span class="time-badge">5 min</span></li>
             <li><a href="#part2">Part 2: Templates</a> <span class="time-badge">3 min</span></li>
             <li><a href="#part3">Part 3: Resource Management</a> <span class="time-badge">5 min</span></li>
+            <li><a href="#part3-5">Part 3.5: Agent Examples</a> <span class="time-badge">3 min</span></li>
             <li><a href="#part4">Part 4: Pre-loaded Context</a> <span class="time-badge">5 min</span></li>
             <li><a href="#part5">Part 5: Using Skills</a> <span class="time-badge">5 min</span></li>
             <li><a href="#part6">Part 6: ServiceNow Tools</a> <span class="time-badge">10 min</span></li>
@@ -330,7 +331,7 @@ npm run build</code></pre>
         <h3>3. Run Tests to Verify Everything Works</h3>
         <pre><code>cd /Users/gpietro/projects/snaifmcp/foundry-mcp
 npm test
-# Should show: Passed: 90/90</code></pre>
+# Should show: Passed: 48/48</code></pre>
 
         <h3>4. Create Demo Directory</h3>
         <pre><code>mkdir -p ~/foundry-demo
@@ -430,6 +431,30 @@ claude</code></pre>
 
         <h3>Get Resource Information</h3>
         <pre><code>Get information about the agent-builder skill</code></pre>
+    </div>
+
+    <h2 id="part3-5">Part 3.5: Agent Examples <span class="time-badge">3 min</span></h2>
+
+    <div class="demo-part">
+        <h3>List Agent Examples</h3>
+        <pre><code>List available Foundry agent examples</code></pre>
+        <p><strong>Expected:</strong> Shows available agent examples (or empty list with helpful message if none exist yet).</p>
+
+        <h3>Get Agent Example Info</h3>
+        <pre><code>Get information about the _template agent example structure</code></pre>
+        <p><strong>Note:</strong> The <code>_template</code> is a reference template for creating new agent examples. It shows the expected structure (AGENT.md, config.json, src/).</p>
+
+        <h3>Placeholder Resources (Future)</h3>
+        <pre><code>Get information about the code-reviewer subagent</code></pre>
+        <p><strong>Expected:</strong> Shows "not yet implemented" message explaining subagents are coming soon.</p>
+
+        <pre><code>Get information about the post-init hook</code></pre>
+        <p><strong>Expected:</strong> Shows "not yet implemented" message explaining hooks are coming soon.</p>
+
+        <div class="talk-track">
+            <h4>Talk Track</h4>
+            <blockquote>"Agent examples are reference implementations you can study and adapt. Subagents and hooks are planned for future releases to support multi-agent orchestration and lifecycle automation."</blockquote>
+        </div>
     </div>
 
     <h2 id="part4">Part 4: Pre-loaded Context <span class="time-badge">5 min</span></h2>
@@ -551,10 +576,10 @@ gs.info('Total: ' + count + ' active incidents');</code></pre>
             </thead>
             <tbody>
                 <tr><td><code>foundry_init</code></td><td>"Create a new POC called my-project"</td></tr>
-                <tr><td><code>foundry_list</code></td><td>"List all available Foundry resources"</td></tr>
-                <tr><td><code>foundry_add</code></td><td>"Add the testing-patterns skill to this project"</td></tr>
+                <tr><td><code>foundry_list</code></td><td>"List all available Foundry resources" (supports: context, skills, templates, agent_examples)</td></tr>
+                <tr><td><code>foundry_add</code></td><td>"Add the testing-patterns skill to this project" (supports: context, skill, agent_example)</td></tr>
                 <tr><td><code>foundry_sync</code></td><td>"Sync this project's resources with the golden repo"</td></tr>
-                <tr><td><code>foundry_info</code></td><td>"Get info about the agent-builder skill"</td></tr>
+                <tr><td><code>foundry_info</code></td><td>"Get info about the agent-builder skill" (supports: context, skill, template, agent_example, subagent, hook)</td></tr>
                 <tr><td><code>foundry_search</code></td><td>"Search Foundry for GlideRecord content"</td></tr>
                 <tr><td><code>foundry_new</code></td><td>"Create a new context file called my-patterns"</td></tr>
                 <tr><td><code>foundry_validate</code></td><td>"Validate the my-patterns context file"</td></tr>

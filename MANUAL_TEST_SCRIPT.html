@@ -472,7 +472,7 @@
         </div>
         <div class="meta-item">
             <span class="meta-label">Total Tests</span>
-            <span class="meta-value">29 (22 core + 7 ServiceNow)</span>
+            <span class="meta-value">32 (25 core + 7 ServiceNow)</span>
         </div>
         <div class="meta-item">
             <span class="meta-label">Prerequisites</span>
@@ -487,7 +487,7 @@
                 <span class="stat-pass">Pass: <span id="pass-count">0</span></span>
                 <span class="stat-fail">Fail: <span id="fail-count">0</span></span>
                 <span class="stat-skip">Skip: <span id="skip-count">0</span></span>
-                <span>of <span id="total-count">29</span></span>
+                <span>of <span id="total-count">32</span></span>
             </div>
         </div>
         <div class="progress-track">
@@ -503,7 +503,7 @@
         <h3>1. Run Automated Tests First</h3>
         <pre><code>cd /Users/gpietro/projects/snaifmcp/foundry-mcp
 npm test</code></pre>
-        <p><strong>Expected:</strong> <code>Passed: 90/90</code></p>
+        <p><strong>Expected:</strong> <code>Passed: 48/48</code></p>
 
         <h3>2. Create Test Directory</h3>
         <pre><code>mkdir -p ~/foundry-manual-test
@@ -839,8 +839,74 @@ ls test-standard/.claude/skills/ 2>/dev/null || echo "No skills directory (expec
         <div class="expected">
             <span class="expected-label">Expected:</span>
             <ul>
-                <li>Shows external plugin status</li>
-                <li>May show empty list if none configured</li>
+                <li>Shows approved external sources (superpowers, servicenow-utils, now-assist-testing)</li>
+                <li>Sources loaded from external-registry.json</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.15">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.15</span>
+                <div class="test-title">foundry_list (Agent Examples)</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>List available Foundry agent examples</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Shows available agent examples (may be empty initially)</li>
+                <li>If empty, shows helpful message about using _template</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.16">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.16</span>
+                <div class="test-title">foundry_info (Subagent Placeholder)</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Get information about the code-reviewer subagent</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Returns "not yet implemented" message</li>
+                <li>Lists planned subagent features (code review, testing, documentation, research)</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.17">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.17</span>
+                <div class="test-title">foundry_info (Hook Placeholder)</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Get information about the post-init hook</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Returns "not yet implemented" message</li>
+                <li>Lists planned hook features (post-init, pre-commit, post-add, sync-complete)</li>
             </ul>
         </div>
     </div>
