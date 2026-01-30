@@ -102,9 +102,9 @@ This document tracks all planned features, enhancements, and technical debt item
 | C-001 | P1 | `[x]` | now-assist-platform.md | Now Assist architecture & APIs |
 | C-002 | P1 | `[x]` | genai-framework.md | GenAI Controller & skill development |
 | C-003 | P1 | `[x]` | agentic-patterns.md | Agentic framework & tools |
-| C-004 | P2 | `[ ]` | troubleshooting-guide.md | Common issues, debug patterns |
-| C-005 | P2 | `[ ]` | security-patterns.md | ACLs, roles, secure coding |
-| C-006 | P3 | `[ ]` | performance-tuning.md | Optimization techniques |
+| C-004 | P2 | `[x]` | troubleshooting-guide.md | Common issues, debug patterns |
+| C-005 | P2 | `[x]` | security-patterns.md | ACLs, roles, secure coding |
+| C-006 | P3 | `[x]` | performance-tuning.md | Optimization techniques |
 
 ### Skills
 
@@ -112,8 +112,8 @@ This document tracks all planned features, enhancements, and technical debt item
 |----|----------|--------|-------|-------------|
 | S-001 | P1 | `[x]` | now-assist-skill-builder | Creating custom Now Assist skills |
 | S-002 | P1 | `[x]` | api-integration | ServiceNow REST API patterns |
-| S-003 | P1 | `[ ]` | servicenow-troubleshooting | Debug with syslogs, AIA logs, scripts |
-| S-004 | P2 | `[ ]` | agent-builder | Creating AI Agents |
+| S-003 | P1 | `[x]` | servicenow-troubleshooting | Debug with syslogs, AIA logs, scripts |
+| S-004 | P2 | `[x]` | agent-builder | Creating AI Agents |
 | S-005 | P2 | `[ ]` | testing-patterns | Unit testing, ATF, mocking |
 | S-006 | P3 | `[ ]` | deployment-automation | CI/CD, update sets, app publishing |
 
@@ -122,8 +122,8 @@ This document tracks all planned features, enhancements, and technical debt item
 | ID | Priority | Status | Template | Description |
 |----|----------|--------|----------|-------------|
 | T-001 | P1 | `[x]` | sparc-starter | SPARC methodology template |
-| T-002 | P3 | `[ ]` | minimal | Bare-bones CLAUDE.md |
-| T-003 | P3 | `[ ]` | integration-focused | API/integration project template |
+| T-002 | P3 | `[x]` | minimal | Bare-bones CLAUDE.md |
+| T-003 | P3 | `[x]` | standard | Standard setup with context |
 
 ---
 
@@ -191,6 +191,13 @@ These items are captured for future consideration but not prioritized yet:
 | A-010 | `foundry_external` tool | 2026-01-29 |
 | A-011 | `foundry_version` tool | 2026-01-29 |
 | A-012 | `foundry_templates` tool | 2026-01-29 |
+| C-004 | troubleshooting-guide.md | 2026-01-29 |
+| C-005 | security-patterns.md | 2026-01-29 |
+| C-006 | performance-tuning.md | 2026-01-29 |
+| S-003 | servicenow-troubleshooting skill | 2026-01-29 |
+| S-004 | agent-builder skill | 2026-01-29 |
+| T-002 | minimal template | 2026-01-29 |
+| T-003 | standard template | 2026-01-29 |
 
 ---
 
