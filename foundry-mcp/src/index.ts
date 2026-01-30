@@ -24,7 +24,7 @@ const execAsync = promisify(exec);
 // Configuration
 const CONFIG = {
   // GitHub repo for foundry-golden (owner/repo format for gh CLI)
-  goldenRepo: "gapietro/foundry-golden",
+  goldenRepo: "Now-AI-Foundry/foundry-golden",
   // Local cache directory for the golden repo
   cacheDir: path.join(
     process.env.HOME || process.env.USERPROFILE || "~",
