@@ -600,6 +600,11 @@ Thumbs.db
 .env.local
 `;
         await fs.writeFile(path.join(projectPath, ".gitignore"), gitignore);
+        // Bootstrap external plugins (superpowers is default for all templates)
+        const externalConfig = {
+            sources: ["@approved/superpowers"],
+        };
+        await fs.writeFile(path.join(claudeDir, "foundry-external.json"), JSON.stringify(externalConfig, null, 2));
         // Build resource list for message
         const resourceList = [];
         if (templateSettings.context) {
@@ -609,6 +614,7 @@ Thumbs.db
             resourceList.push("- Skills: Now Assist skill builder, API integration");
         }
         resourceList.push(`- Template: ${template}`);
+        resourceList.push("- External: superpowers (agentic workflow framework)");
         return {
             success: true,
             projectPath,
@@ -619,13 +625,17 @@ ${resourceList.join("\n")}
 
 Next steps:
 1. cd ${projectPath}
-2. Review CLAUDE.md and update project details
-3. Start building with Claude Code!
+2. Set up superpowers (recommended):
+   gh repo clone obra/superpowers .superpowers
+   # Then follow superpowers setup instructions
+3. Review CLAUDE.md and update project details
+4. Start building with Claude Code!
 ${!templateSettings.context || !templateSettings.skills ? `
 Use foundry_add to add additional resources:
   foundry_add type="context" name="now-assist-platform"
   foundry_add type="skill" name="api-integration"` : ""}
-The .claude/ directory contains pre-loaded resources that Claude Code will use automatically.`,
+The .claude/ directory contains pre-loaded resources that Claude Code will use automatically.
+Superpowers is pre-registered in .claude/foundry-external.json for design-first agentic workflows.`,
         };
     }
     catch (error) {
