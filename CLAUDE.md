@@ -85,24 +85,32 @@ snaifmcp/
     └── archive/              # Reference docs & future phase designs
 ```
 
-### Separate GitHub Repositories
+### Multi-Repo Structure
 
-**IMPORTANT:** The `foundry-mcp/` and `foundry-golden/` folders have their own separate GitHub repositories in the Now-AI-Foundry organization. Changes to these folders must be committed and pushed to BOTH:
+**CRITICAL:** The `foundry-mcp/` and `foundry-golden/` folders are **independent Git repositories** linked to the Now-AI-Foundry organization. They are NOT subfolders of snaifmcp.
 
-1. **This repo** (`gapietro/snaifmcp`) - the development monorepo
-2. **Their respective org repos** - the production repos
+| Folder | GitHub Repo | Purpose |
+|--------|-------------|---------|
+| `foundry-mcp/` | [Now-AI-Foundry/foundry-mcp](https://github.com/Now-AI-Foundry/foundry-mcp) | MCP server implementation |
+| `foundry-golden/` | [Now-AI-Foundry/foundry-golden](https://github.com/Now-AI-Foundry/foundry-golden) | Golden repo content (context, skills, templates) |
+| `snaifmcp/` (this repo) | [gapietro/snaifmcp](https://github.com/gapietro/snaifmcp) | Planning docs, specs, coordination |
 
-| Folder | Organization Repo |
-|--------|-------------------|
-| `foundry-mcp/` | https://github.com/Now-AI-Foundry/foundry-mcp |
-| `foundry-golden/` | https://github.com/Now-AI-Foundry/foundry-golden |
+**Workflow Rules:**
 
-**Workflow for changes to these folders:**
-1. Make changes in snaifmcp (this repo)
-2. Create PR and merge to snaifmcp/main
-3. `cd` into the folder (e.g., `cd foundry-mcp`)
-4. Create branch, commit, push, and PR to the org repo
-5. Merge to org repo main
+1. **MCP server changes** (code in `src/`, `package.json`, tests):
+   - `cd foundry-mcp`
+   - Create issues/PRs in `Now-AI-Foundry/foundry-mcp`
+   - Version bumps apply to foundry-mcp's package.json
+
+2. **Golden repo changes** (context, skills, templates, agent examples):
+   - `cd foundry-golden`
+   - Create issues/PRs in `Now-AI-Foundry/foundry-golden`
+
+3. **Planning/spec changes** (docs/, this CLAUDE.md):
+   - Work in snaifmcp root
+   - Create issues/PRs in `gapietro/snaifmcp`
+
+**DO NOT** create PRs in snaifmcp for changes that belong in the org repos.
 
 ## Documentation
 
