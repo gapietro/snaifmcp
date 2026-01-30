@@ -20,7 +20,7 @@ cd /Users/gpietro/projects/snaifmcp/foundry-mcp
 npm test
 ```
 
-**Expected:** `Passed: 90/90`
+**Expected:** `Passed: 48/48`
 
 ### 2. Create Test Directory
 
@@ -282,8 +282,53 @@ List external plugins in the test-basic project
 ```
 
 **Expected:**
-- Shows external plugin status
-- May show empty list if none configured
+- Shows approved external sources (superpowers, servicenow-utils, now-assist-testing)
+- Sources loaded from external-registry.json
+
+**Result:** [ ] Pass [ ] Fail
+
+---
+
+### Test 1.15: foundry_list (Agent Examples)
+
+**Input:**
+```
+List available Foundry agent examples
+```
+
+**Expected:**
+- Shows available agent examples (may be empty initially)
+- If empty, shows helpful message about using _template
+
+**Result:** [ ] Pass [ ] Fail
+
+---
+
+### Test 1.16: foundry_info (Subagent Placeholder)
+
+**Input:**
+```
+Get information about the code-reviewer subagent
+```
+
+**Expected:**
+- Returns "not yet implemented" message
+- Lists planned subagent features (code review, testing, documentation, research)
+
+**Result:** [ ] Pass [ ] Fail
+
+---
+
+### Test 1.17: foundry_info (Hook Placeholder)
+
+**Input:**
+```
+Get information about the post-init hook
+```
+
+**Expected:**
+- Returns "not yet implemented" message
+- Lists planned hook features (post-init, pre-commit, post-add, sync-complete)
 
 **Result:** [ ] Pass [ ] Fail
 
@@ -628,6 +673,9 @@ rmdir foundry-manual-test
 - [ ] Test 1.12: foundry_validate
 - [ ] Test 1.13: foundry_version
 - [ ] Test 1.14: foundry_external
+- [ ] Test 1.15: foundry_list (Agent Examples)
+- [ ] Test 1.16: foundry_info (Subagent Placeholder)
+- [ ] Test 1.17: foundry_info (Hook Placeholder)
 
 ### Part 2: Context Awareness
 - [ ] Test 2.1: Now Assist Platform
@@ -658,9 +706,9 @@ rmdir foundry-manual-test
 
 ---
 
-**Total Tests:** 29
+**Total Tests:** 32
 **ServiceNow Tests (Optional):** 7
-**Core Tests:** 22
+**Core Tests:** 25
 
 **Date Tested:** _______________
 **Tester:** _______________

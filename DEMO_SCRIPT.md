@@ -28,7 +28,7 @@ npm run build
 ```bash
 cd /Users/gpietro/projects/snaifmcp/foundry-mcp
 npm test
-# Should show: Passed: 90/90
+# Should show: Passed: 48/48
 ```
 
 ### 4. Create Demo Directory
@@ -159,6 +159,45 @@ Add the testing-patterns skill to the quick-test project
 ```
 Get information about the agent-builder skill
 ```
+
+---
+
+## Demo Part 3.5: Agent Examples (3 min)
+
+### List Agent Examples
+
+```
+List available Foundry agent examples
+```
+
+**Expected:** Shows available agent examples (or empty list with helpful message if none exist yet).
+
+### Get Agent Example Info
+
+```
+Get information about the _template agent example structure
+```
+
+**Note:** The `_template` is a reference template for creating new agent examples. It shows the expected structure (AGENT.md, config.json, src/).
+
+### Placeholder Resources (Future)
+
+```
+Get information about the code-reviewer subagent
+```
+
+**Expected:** Shows "not yet implemented" message explaining subagents are coming soon.
+
+```
+Get information about the post-init hook
+```
+
+**Expected:** Shows "not yet implemented" message explaining hooks are coming soon.
+
+**Talk Track:**
+> "Agent examples are reference implementations you can study and adapt.
+> Subagents and hooks are planned for future releases to support
+> multi-agent orchestration and lifecycle automation."
 
 ---
 
@@ -336,15 +375,15 @@ Check if there are any updates available for my project resources
 | Tool | Example Usage |
 |------|---------------|
 | `foundry_init` | "Create a new POC called my-project" |
-| `foundry_list` | "List all available Foundry resources" |
-| `foundry_add` | "Add the testing-patterns skill to this project" |
+| `foundry_list` | "List all available Foundry resources" (supports: context, skills, templates, agent_examples) |
+| `foundry_add` | "Add the testing-patterns skill to this project" (supports: context, skill, agent_example) |
 | `foundry_sync` | "Sync this project's resources with the golden repo" |
-| `foundry_info` | "Get info about the agent-builder skill" |
+| `foundry_info` | "Get info about the agent-builder skill" (supports: context, skill, template, agent_example, subagent, hook) |
 | `foundry_search` | "Search Foundry for GlideRecord content" |
 | `foundry_new` | "Create a new context file called my-patterns" |
 | `foundry_validate` | "Validate the my-patterns context file" |
 | `foundry_promote` | "Promote my-patterns to the golden repo" |
-| `foundry_external` | "Add the @approved/servicenow-utils plugin" |
+| `foundry_external` | "Add the @approved/servicenow-utils plugin" (registry loaded from external-registry.json) |
 | `foundry_version` | "Check version status of project resources" |
 | `foundry_templates` | "Show available project templates" |
 
