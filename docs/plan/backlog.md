@@ -114,8 +114,8 @@ This document tracks all planned features, enhancements, and technical debt item
 | S-002 | P1 | `[x]` | api-integration | ServiceNow REST API patterns |
 | S-003 | P1 | `[x]` | servicenow-troubleshooting | Debug with syslogs, AIA logs, scripts |
 | S-004 | P2 | `[x]` | agent-builder | Creating AI Agents |
-| S-005 | P2 | `[ ]` | testing-patterns | Unit testing, ATF, mocking |
-| S-006 | P3 | `[ ]` | deployment-automation | CI/CD, update sets, app publishing |
+| S-005 | P2 | `[x]` | testing-patterns | Unit testing, ATF, mocking |
+| S-006 | P3 | `[x]` | deployment-automation | CI/CD, update sets, app publishing |
 
 ### Templates
 
@@ -198,6 +198,8 @@ These items are captured for future consideration but not prioritized yet:
 | S-004 | agent-builder skill | 2026-01-29 |
 | T-002 | minimal template | 2026-01-29 |
 | T-003 | standard template | 2026-01-29 |
+| S-005 | testing-patterns skill | 2026-01-29 |
+| S-006 | deployment-automation skill | 2026-01-29 |
 
 ---
 
