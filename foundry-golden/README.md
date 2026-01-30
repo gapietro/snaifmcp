@@ -234,6 +234,44 @@ Promote my-patterns to the golden repo with message "Add API caching patterns"
 
 ---
 
+## External Plugins (Approved)
+
+The team has vetted external plugins available via `foundry_external`:
+
+| Plugin | Source | Description |
+|--------|--------|-------------|
+| `superpowers` | [obra/superpowers](https://github.com/obra/superpowers) | Agentic skills framework with design-first workflow, TDD, and subagent-driven development |
+| `servicenow-utils` | gapietro/servicenow-utils | Common ServiceNow utility scripts and patterns |
+| `now-assist-testing` | gapietro/now-assist-testing | Testing patterns for Now Assist skills |
+
+### Adding Superpowers to Your Project
+
+Superpowers provides a complete software development workflow for AI agents:
+- **Design phase** with socratic dialogue to refine specs
+- **Planning** with bite-sized tasks
+- **Subagent-driven development** with code review
+- **Test-driven development** (RED-GREEN-REFACTOR)
+
+```
+# List available external plugins
+List external Foundry plugins
+
+# Add superpowers to your project
+Add the superpowers external plugin to this project
+```
+
+This registers superpowers in `.claude/foundry-external.json` and provides instructions for setup.
+
+### Direct GitHub References
+
+You can also add any GitHub repo directly (at your own risk):
+
+```
+Add external plugin @github/owner/repo-name
+```
+
+---
+
 ## See Also
 
 - [HOWTO.md](HOWTO.md) - Detailed content guide

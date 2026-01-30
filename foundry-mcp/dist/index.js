@@ -2319,6 +2319,12 @@ Check existing PRs: gh pr list --repo ${CONFIG.goldenRepo}`,
 // Approved external sources (team-vetted)
 const APPROVED_SOURCES = [
     {
+        name: "superpowers",
+        type: "approved",
+        repo: "obra/superpowers",
+        description: "Agentic skills framework with design-first workflow, TDD, and subagent-driven development",
+    },
+    {
         name: "servicenow-utils",
         type: "approved",
         repo: "gapietro/servicenow-utils",

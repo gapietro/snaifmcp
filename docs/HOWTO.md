@@ -11,10 +11,11 @@ Comprehensive guide for using Foundry to bootstrap, develop, and debug Now Assis
 3. [Managing Resources](#managing-resources)
 4. [Using Pre-loaded Context](#using-pre-loaded-context)
 5. [Using Skills](#using-skills)
-6. [ServiceNow Integration](#servicenow-integration)
-7. [Contributing Content](#contributing-content)
-8. [Testing](#testing)
-9. [Troubleshooting](#troubleshooting)
+6. [External Plugins](#external-plugins)
+7. [ServiceNow Integration](#servicenow-integration)
+8. [Contributing Content](#contributing-content)
+9. [Testing](#testing)
+10. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -263,6 +264,67 @@ Help me design an AI Agent for incident triage
 ```
 Show me how to set up a CI/CD pipeline for ServiceNow
 ```
+
+---
+
+## External Plugins
+
+Foundry supports external plugins from approved sources and direct GitHub references.
+
+### Approved Plugins
+
+Team-vetted plugins available via `@approved/*`:
+
+| Plugin | Description |
+|--------|-------------|
+| `superpowers` | Agentic skills framework with design-first workflow, TDD, subagent-driven development |
+| `servicenow-utils` | Common ServiceNow utility scripts and patterns |
+| `now-assist-testing` | Testing patterns for Now Assist skills |
+
+### List Available Plugins
+
+```
+List external Foundry plugins
+```
+
+### Add Superpowers (Recommended)
+
+Superpowers provides a complete software development workflow for AI agents:
+- **Design phase** - Socratic dialogue to refine specifications
+- **Planning** - Detailed plans with bite-sized tasks (2-5 minutes each)
+- **Execution** - Subagent-driven development with two-stage code review
+- **Quality** - Test-driven development using RED-GREEN-REFACTOR
+
+```
+Add the superpowers external plugin to this project
+```
+
+After adding, follow the setup instructions in the output to clone and configure superpowers.
+
+### Add Other Approved Plugins
+
+```
+Add external plugin @approved/servicenow-utils
+Add external plugin @approved/now-assist-testing
+```
+
+### Add Direct GitHub References
+
+For plugins not in the approved list (use at your own risk):
+
+```
+Add external plugin @github/owner/repo-name
+```
+
+### Remove External Plugins
+
+```
+Remove external plugin @approved/superpowers
+```
+
+### View Installed Plugins
+
+Installed plugins are tracked in `.claude/foundry-external.json`.
 
 ---
 
