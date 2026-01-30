@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foundry Manual Test Script</title>
+    <style>
+        :root {
+            --primary: #7c3aed;
+            --primary-dark: #6d28d9;
+            --success: #059669;
+            --success-light: #d1fae5;
+            --fail: #dc2626;
+            --fail-light: #fee2e2;
+            --skip: #f59e0b;
+            --skip-light: #fef3c7;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --code-bg: #1e293b;
+            --code-text: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        .meta-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meta-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .meta-value {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .progress-bar {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+            position: sticky;
+            top: 1rem;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .progress-title {
+            font-weight: 600;
+        }
+
+        .progress-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .stat-pass { color: var(--success); }
+        .stat-fail { color: var(--fail); }
+        .stat-skip { color: var(--skip); }
+
+        .progress-track {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .progress-fill-pass {
+            background: var(--success);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill-fail {
+            background: var(--fail);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill-skip {
+            background: var(--skip);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 8px;
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            margin: 1rem 0 0.5rem;
+            color: var(--primary-dark);
+        }
+
+        .test-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+            transition: border-color 0.2s;
+        }
+
+        .test-card.pass {
+            border-color: var(--success);
+            background: linear-gradient(to right, var(--success-light), var(--card-bg) 50%);
+        }
+
+        .test-card.fail {
+            border-color: var(--fail);
+            background: linear-gradient(to right, var(--fail-light), var(--card-bg) 50%);
+        }
+
+        .test-card.skip {
+            border-color: var(--skip);
+            background: linear-gradient(to right, var(--skip-light), var(--card-bg) 50%);
+        }
+
+        .test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .test-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--text);
+        }
+
+        .test-id {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .result-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .result-btn {
+            padding: 0.4rem 0.8rem;
+            border: 2px solid;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .result-btn.pass-btn {
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .result-btn.pass-btn:hover,
+        .result-btn.pass-btn.active {
+            background: var(--success);
+            color: white;
+        }
+
+        .result-btn.fail-btn {
+            border-color: var(--fail);
+            color: var(--fail);
+        }
+
+        .result-btn.fail-btn:hover,
+        .result-btn.fail-btn.active {
+            background: var(--fail);
+            color: white;
+        }
+
+        .result-btn.skip-btn {
+            border-color: var(--skip);
+            color: var(--skip);
+        }
+
+        .result-btn.skip-btn:hover,
+        .result-btn.skip-btn.active {
+            background: var(--skip);
+            color: white;
+        }
+
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0.75rem 0;
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        code {
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            background: #f1f5f9;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .expected {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 0.75rem 0;
+        }
+
+        .expected-label {
+            font-weight: 600;
+            color: var(--success);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .setup-card {
+            background: #fefce8;
+            border: 1px solid #fef08a;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .note {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-size: 0.95rem;
+        }
+
+        .cleanup {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .summary-section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border: 1px solid var(--border);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .summary-group h4 {
+            color: var(--primary-dark);
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .summary-group ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .summary-group li {
+            padding: 0.35rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .check-icon {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .check-icon.pass {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .check-icon.fail {
+            background: var(--fail);
+            border-color: var(--fail);
+            color: white;
+        }
+
+        .check-icon.skip {
+            background: var(--skip);
+            border-color: var(--skip);
+            color: white;
+        }
+
+        .tester-info {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .tester-info h3 {
+            margin-top: 0;
+        }
+
+        .tester-field {
+            margin: 0.75rem 0;
+        }
+
+        .tester-field label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .tester-field input,
+        .tester-field textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .tester-field textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        ul {
+            padding-left: 1.25rem;
+            margin: 0.5rem 0;
+        }
+
+        li {
+            margin: 0.25rem 0;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+                background: white;
+            }
+
+            .progress-bar {
+                position: static;
+                box-shadow: none;
+            }
+
+            .test-card {
+                break-inside: avoid;
+                box-shadow: none;
+            }
+
+            .result-btn {
+                border-width: 1px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.75rem;
+            }
+
+            .test-header {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .result-buttons {
+                width: 100%;
+            }
+
+            .result-btn {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Foundry Manual Test Script</h1>
+    <p class="subtitle">Complete test script to verify all Foundry and ServiceNow functionality</p>
+
+    <div class="meta-info">
+        <div class="meta-item">
+            <span class="meta-label">Test Duration</span>
+            <span class="meta-value">30-45 minutes</span>
+        </div>
+        <div class="meta-item">
+            <span class="meta-label">Total Tests</span>
+            <span class="meta-value">29 (22 core + 7 ServiceNow)</span>
+        </div>
+        <div class="meta-item">
+            <span class="meta-label">Prerequisites</span>
+            <span class="meta-value">gh auth, MCP server built</span>
+        </div>
+    </div>
+
+    <div class="progress-bar">
+        <div class="progress-header">
+            <span class="progress-title">Test Progress</span>
+            <div class="progress-stats">
+                <span class="stat-pass">Pass: <span id="pass-count">0</span></span>
+                <span class="stat-fail">Fail: <span id="fail-count">0</span></span>
+                <span class="stat-skip">Skip: <span id="skip-count">0</span></span>
+                <span>of <span id="total-count">29</span></span>
+            </div>
+        </div>
+        <div class="progress-track">
+            <div class="progress-fill-pass" id="progress-pass" style="width: 0%"></div>
+            <div class="progress-fill-fail" id="progress-fail" style="width: 0%"></div>
+            <div class="progress-fill-skip" id="progress-skip" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <h2>Pre-Test Setup</h2>
+
+    <div class="setup-card">
+        <h3>1. Run Automated Tests First</h3>
+        <pre><code>cd /Users/gpietro/projects/snaifmcp/foundry-mcp
+npm test</code></pre>
+        <p><strong>Expected:</strong> <code>Passed: 90/90</code></p>
+
+        <h3>2. Create Test Directory</h3>
+        <pre><code>mkdir -p ~/foundry-manual-test
+cd ~/foundry-manual-test</code></pre>
+
+        <h3>3. Start Claude Code</h3>
+        <pre><code>claude</code></pre>
+    </div>
+
+    <h2>Part 1: Foundry Core Tools</h2>
+
+    <div class="test-card" data-test="1.1">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.1</span>
+                <div class="test-title">foundry_init (Basic)</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Create a new Now Assist POC called "test-basic"</code></pre>
+        <p><strong>Verify:</strong></p>
+        <pre><code>tree test-basic/</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li><code>CLAUDE.md</code> exists with SPARC methodology</li>
+                <li><code>.claude/context/</code> has 6 markdown files</li>
+                <li><code>.claude/skills/</code> has 6 skill directories</li>
+                <li><code>.gitignore</code> exists</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.2">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.2</span>
+                <div class="test-title">foundry_init (Minimal Template)</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Create a project called "test-minimal" using the minimal template</code></pre>
+        <p><strong>Verify:</strong></p>
+        <pre><code>ls -la test-minimal/
+ls test-minimal/.claude/ 2>/dev/null || echo "No .claude directory (expected)"</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li><code>CLAUDE.md</code> exists</li>
+                <li><code>.gitignore</code> exists</li>
+                <li>No <code>.claude/context/</code> directory</li>
+                <li>No <code>.claude/skills/</code> directory</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.3">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.3</span>
+                <div class="test-title">foundry_init (Standard Template)</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Create a project called "test-standard" using the standard template</code></pre>
+        <p><strong>Verify:</strong></p>
+        <pre><code>ls test-standard/.claude/context/
+ls test-standard/.claude/skills/ 2>/dev/null || echo "No skills directory (expected)"</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Has <code>.claude/context/</code> with 6 files</li>
+                <li>No <code>.claude/skills/</code> directory</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.4">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.4</span>
+                <div class="test-title">foundry_list</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>List all available Foundry resources</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected output contains:</span>
+            <ul>
+                <li>6 context files listed</li>
+                <li>6 skills listed</li>
+                <li>3 templates listed</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.5">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.5</span>
+                <div class="test-title">foundry_templates</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Show me the available Foundry templates</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Lists sparc-starter, minimal, standard</li>
+                <li>Shows what each includes</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.6">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.6</span>
+                <div class="test-title">foundry_info</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Get information about the agent-builder skill</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Shows skill description</li>
+                <li>Shows file path</li>
+                <li>May show examples count</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.7">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.7</span>
+                <div class="test-title">foundry_search</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Search Foundry for "GlideRecord"</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Shows matching resources</li>
+                <li>Shows match locations (name vs content)</li>
+                <li>Includes relevance scoring</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.8">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.8</span>
+                <div class="test-title">foundry_add</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input (in test-minimal directory):</strong></p>
+        <pre><code>Add the testing-patterns skill to the test-minimal project</code></pre>
+        <p><strong>Verify:</strong></p>
+        <pre><code>ls test-minimal/.claude/skills/testing-patterns/</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li><code>SKILL.md</code> exists</li>
+                <li><code>examples/</code> directory exists</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.9">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.9</span>
+                <div class="test-title">foundry_sync</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input (in test-basic directory):</strong></p>
+        <pre><code>Sync this project's resources with the golden repo</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Shows comparison status</li>
+                <li>Lists unchanged/modified/new resources</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.10">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.10</span>
+                <div class="test-title">foundry_new (Context)</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Create a new context file called "my-test-context" in the test-basic project</code></pre>
+        <p><strong>Verify:</strong></p>
+        <pre><code>ls test-basic/.claude/context/my-test-context.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>File created with scaffold content</li>
+                <li>Has proper structure (# header, sections)</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.11">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.11</span>
+                <div class="test-title">foundry_new (Skill)</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Create a new skill called "my-test-skill" in the test-basic project</code></pre>
+        <p><strong>Verify:</strong></p>
+        <pre><code>ls -la test-basic/.claude/skills/my-test-skill/</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li><code>SKILL.md</code> exists</li>
+                <li><code>examples/</code> directory exists</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.12">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.12</span>
+                <div class="test-title">foundry_validate</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Validate the my-test-context context file in test-basic</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Shows validation results</li>
+                <li>May warn about short content (needs 50+ words)</li>
+                <li>May warn about placeholder text</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.13">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.13</span>
+                <div class="test-title">foundry_version</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Check version status of resources in the test-basic project</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Shows installed resources</li>
+                <li>Shows version/hash information</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.14">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.14</span>
+                <div class="test-title">foundry_external</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>List external plugins in the test-basic project</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Shows external plugin status</li>
+                <li>May show empty list if none configured</li>
+            </ul>
+        </div>
+    </div>
+
+    <h2>Part 2: Context Awareness Tests</h2>
+
+    <div class="test-card" data-test="2.1">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 2.1</span>
+                <div class="test-title">Now Assist Platform Context</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input (in test-basic directory):</strong></p>
+        <pre><code>Based on the pre-loaded context, explain the Now Assist platform architecture</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Answer references Now Assist capabilities</li>
+                <li>Mentions APIs, configuration, or components</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="2.2">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 2.2</span>
+                <div class="test-title">Performance Tuning Context</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>How should I optimize GlideRecord queries according to the context?</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Mentions indexed fields</li>
+                <li>Mentions setLimit()</li>
+                <li>Mentions N+1 pattern</li>
+                <li>Mentions GlideAggregate</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="2.3">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 2.3</span>
+                <div class="test-title">Security Patterns Context</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>What are the security best practices for ACLs?</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>References ACL configuration</li>
+                <li>Mentions roles</li>
+                <li>Discusses input validation</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="2.4">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 2.4</span>
+                <div class="test-title">Troubleshooting Context</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>How do I debug AI Agent issues using syslogs?</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>References syslog queries</li>
+                <li>Mentions AIA logs</li>
+                <li>Discusses common issues</li>
+            </ul>
+        </div>
+    </div>
+
+    <h2>Part 3: Skill Usage Tests</h2>
+
+    <div class="test-card" data-test="3.1">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 3.1</span>
+                <div class="test-title">Now Assist Skill Builder</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Using the now-assist-skill-builder skill, help me create a skill that summarizes incident descriptions</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Follows skill instructions</li>
+                <li>Asks clarifying questions</li>
+                <li>Provides manifest structure</li>
+                <li>Shows testing approach</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="3.2">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 3.2</span>
+                <div class="test-title">API Integration</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Using the api-integration skill, show me how to build a REST API to query incidents</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Shows Scripted REST API pattern</li>
+                <li>Includes authentication</li>
+                <li>Shows error handling</li>
+                <li>Follows skill structure</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="3.3">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 3.3</span>
+                <div class="test-title">Testing Patterns</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Using the testing-patterns skill, show me how to write unit tests for a Script Include</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Shows TestRunner pattern</li>
+                <li>Shows assertion methods</li>
+                <li>Shows mock GlideRecord example</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="3.4">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 3.4</span>
+                <div class="test-title">Agent Builder</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Using the agent-builder skill, help me design an AI Agent for incident triage</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Discusses agent architecture</li>
+                <li>Shows tool design</li>
+                <li>Includes guardrails</li>
+                <li>Shows testing approach</li>
+            </ul>
+        </div>
+    </div>
+
+    <h2>Part 4: ServiceNow Tools (Optional)</h2>
+
+    <div class="note">
+        <strong>Note:</strong> Skip this section if no ServiceNow instance is available.
+    </div>
+
+    <div class="test-card" data-test="4.1">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 4.1</span>
+                <div class="test-title">servicenow_connect</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Connect to [YOUR_INSTANCE].service-now.com with username [USERNAME]</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Prompts for password if not provided</li>
+                <li>Shows connection success or error</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="4.2">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 4.2</span>
+                <div class="test-title">servicenow_status</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Check my ServiceNow connection status</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Shows connected instance</li>
+                <li>Shows connection details</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="4.3">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 4.3</span>
+                <div class="test-title">servicenow_syslogs</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Get the last 10 syslogs</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Returns syslog entries</li>
+                <li>Shows timestamp, source, message</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="4.4">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 4.4</span>
+                <div class="test-title">servicenow_query</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Query the incident table for 5 active incidents</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Returns incident records</li>
+                <li>Shows number, description, state</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="4.5">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 4.5</span>
+                <div class="test-title">servicenow_script (Read-Only)</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Run this script in read-only mode:
+
+var gr = new GlideRecord('incident');
+gr.addQuery('active', true);
+gr.setLimit(3);
+gr.query();
+while(gr.next()) {
+    gs.info(gr.number);
+}</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Executes successfully</li>
+                <li>Shows output</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="4.6">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 4.6</span>
+                <div class="test-title">servicenow_instance</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Get information about the connected ServiceNow instance</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Shows instance details</li>
+                <li>Shows version/build info</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="4.7">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 4.7</span>
+                <div class="test-title">servicenow_disconnect</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Disconnect from ServiceNow</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Confirms disconnection</li>
+            </ul>
+        </div>
+    </div>
+
+    <h2>Part 5: Error Handling Tests</h2>
+
+    <div class="test-card" data-test="5.1">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 5.1</span>
+                <div class="test-title">Invalid Project Name</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Create a project called "test project!"</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Error about invalid characters</li>
+                <li>Suggests valid naming</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="5.2">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 5.2</span>
+                <div class="test-title">Duplicate Project</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Create a project called "test-basic"</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Error about existing directory</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="5.3">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 5.3</span>
+                <div class="test-title">Invalid Template</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Create a project called "test-invalid" using the nonexistent template</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Error about invalid template</li>
+                <li>Lists valid templates</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="5.4">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 5.4</span>
+                <div class="test-title">Resource Not Found</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+            </div>
+        </div>
+        <p><strong>Input:</strong></p>
+        <pre><code>Get information about the nonexistent-skill skill</code></pre>
+        <div class="expected">
+            <span class="expected-label">Expected:</span>
+            <ul>
+                <li>Error that skill not found</li>
+            </ul>
+        </div>
+    </div>
+
+    <h2>Cleanup</h2>
+
+    <div class="card cleanup">
+        <pre><code>cd ~/foundry-manual-test
+rm -rf test-basic test-minimal test-standard
+cd ~
+rmdir foundry-manual-test</code></pre>
+    </div>
+
+    <div class="tester-info">
+        <h3>Test Session Info</h3>
+        <div class="tester-field">
+            <label for="test-date">Date Tested:</label>
+            <input type="date" id="test-date">
+        </div>
+        <div class="tester-field">
+            <label for="tester-name">Tester:</label>
+            <input type="text" id="tester-name" placeholder="Enter your name">
+        </div>
+        <div class="tester-field">
+            <label for="test-notes">Notes:</label>
+            <textarea id="test-notes" placeholder="Any issues or observations..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        const results = {};
+        const totalTests = document.querySelectorAll('.test-card').length;
+
+        function setResult(btn, result) {
+            const card = btn.closest('.test-card');
+            const testId = card.dataset.test;
+
+            // Remove active from all buttons in this card
+            card.querySelectorAll('.result-btn').forEach(b => b.classList.remove('active'));
+
+            // Add active to clicked button
+            btn.classList.add('active');
+
+            // Update card styling
+            card.classList.remove('pass', 'fail', 'skip');
+            card.classList.add(result);
+
+            // Store result
+            results[testId] = result;
+
+            // Update progress
+            updateProgress();
+        }
+
+        function updateProgress() {
+            let pass = 0, fail = 0, skip = 0;
+
+            Object.values(results).forEach(r => {
+                if (r === 'pass') pass++;
+                else if (r === 'fail') fail++;
+                else if (r === 'skip') skip++;
+            });
+
+            document.getElementById('pass-count').textContent = pass;
+            document.getElementById('fail-count').textContent = fail;
+            document.getElementById('skip-count').textContent = skip;
+
+            const passWidth = (pass / totalTests) * 100;
+            const failWidth = (fail / totalTests) * 100;
+            const skipWidth = (skip / totalTests) * 100;
+
+            document.getElementById('progress-pass').style.width = passWidth + '%';
+            document.getElementById('progress-fail').style.width = failWidth + '%';
+            document.getElementById('progress-skip').style.width = skipWidth + '%';
+        }
+
+        // Set today's date
+        document.getElementById('test-date').valueAsDate = new Date();
+    </script>
+</body>
+</html>

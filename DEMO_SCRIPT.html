@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foundry Demo Script</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #059669;
+            --warning: #d97706;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --code-bg: #1e293b;
+            --code-text: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 8px;
+        }
+
+        h3 {
+            font-size: 1.2rem;
+            margin: 1.5rem 0 0.75rem;
+            color: var(--primary-dark);
+            border-left: 4px solid var(--primary);
+            padding-left: 0.75rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+        }
+
+        .setup-card {
+            border-left: 4px solid var(--warning);
+        }
+
+        .demo-part {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid var(--border);
+        }
+
+        .time-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-left: 0.5rem;
+        }
+
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0.75rem 0;
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        code {
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            background: #f1f5f9;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .talk-track {
+            background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+            border-left: 4px solid var(--success);
+            padding: 1rem 1.25rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+            font-style: italic;
+        }
+
+        .talk-track::before {
+            content: "Talk Track";
+            display: block;
+            font-weight: 600;
+            font-style: normal;
+            color: var(--success);
+            margin-bottom: 0.5rem;
+        }
+
+        .expected {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 0.75rem 0;
+        }
+
+        .expected::before {
+            content: "Expected Output";
+            display: block;
+            font-weight: 600;
+            color: var(--success);
+            margin-bottom: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg);
+            font-weight: 600;
+            color: var(--primary-dark);
+        }
+
+        tr:hover {
+            background: #f8fafc;
+        }
+
+        .qa-section {
+            background: #fefce8;
+            border: 1px solid #fef08a;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 0.75rem 0;
+        }
+
+        .qa-section strong {
+            color: var(--warning);
+        }
+
+        blockquote {
+            background: #f8fafc;
+            border-left: 4px solid var(--text-muted);
+            padding: 0.75rem 1rem;
+            margin: 0.75rem 0;
+            border-radius: 0 8px 8px 0;
+            color: var(--text-muted);
+        }
+
+        ul, ol {
+            padding-left: 1.5rem;
+            margin: 0.5rem 0;
+        }
+
+        li {
+            margin: 0.25rem 0;
+        }
+
+        .toc {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .toc h3 {
+            margin-top: 0;
+            border: none;
+            padding-left: 0;
+        }
+
+        .toc ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .toc li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .toc li:last-child {
+            border-bottom: none;
+        }
+
+        .toc a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        .cleanup {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+                background: white;
+            }
+
+            .demo-part, .card {
+                break-inside: avoid;
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+
+            h2 {
+                break-after: avoid;
+            }
+
+            pre {
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.75rem;
+            }
+
+            .time-badge {
+                display: block;
+                margin: 0.5rem 0 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Foundry Demo Script</h1>
+    <p class="subtitle">Complete walkthrough for demonstrating Foundry capabilities</p>
+
+    <div class="toc">
+        <h3>Contents</h3>
+        <ul>
+            <li><a href="#setup">Pre-Demo Setup</a></li>
+            <li><a href="#part1">Part 1: Project Bootstrap</a> <span class="time-badge">5 min</span></li>
+            <li><a href="#part2">Part 2: Templates</a> <span class="time-badge">3 min</span></li>
+            <li><a href="#part3">Part 3: Resource Management</a> <span class="time-badge">5 min</span></li>
+            <li><a href="#part4">Part 4: Pre-loaded Context</a> <span class="time-badge">5 min</span></li>
+            <li><a href="#part5">Part 5: Using Skills</a> <span class="time-badge">5 min</span></li>
+            <li><a href="#part6">Part 6: ServiceNow Tools</a> <span class="time-badge">10 min</span></li>
+            <li><a href="#part7">Part 7: Contribution Workflow</a> <span class="time-badge">5 min</span></li>
+            <li><a href="#part8">Part 8: Version Management</a> <span class="time-badge">3 min</span></li>
+            <li><a href="#reference">Tool Reference</a></li>
+            <li><a href="#troubleshooting">Troubleshooting</a></li>
+            <li><a href="#qa">Q&amp;A Prep</a></li>
+        </ul>
+    </div>
+
+    <h2 id="setup">Pre-Demo Setup</h2>
+
+    <div class="card setup-card">
+        <h3>1. Verify GitHub CLI Authentication</h3>
+        <pre><code>gh auth status
+
+# If not logged in:
+gh auth login</code></pre>
+
+        <h3>2. Build the MCP Server (if needed)</h3>
+        <pre><code>cd /Users/gpietro/projects/snaifmcp/foundry-mcp
+npm install
+npm run build</code></pre>
+
+        <h3>3. Run Tests to Verify Everything Works</h3>
+        <pre><code>cd /Users/gpietro/projects/snaifmcp/foundry-mcp
+npm test
+# Should show: Passed: 90/90</code></pre>
+
+        <h3>4. Create Demo Directory</h3>
+        <pre><code>mkdir -p ~/foundry-demo
+cd ~/foundry-demo</code></pre>
+    </div>
+
+    <h2 id="part1">Part 1: Project Bootstrap <span class="time-badge">5 min</span></h2>
+
+    <div class="demo-part">
+        <h3>The Problem</h3>
+        <blockquote>"Every new POC requires manually gathering ServiceNow context, team conventions, skills, and MCP configs. It's slow and inconsistent."</blockquote>
+
+        <h3>The Solution</h3>
+        <pre><code>cd ~/foundry-demo
+claude</code></pre>
+
+        <p><strong>In Claude Code:</strong></p>
+        <pre><code>Create a new Now Assist POC called "customer-assist"</code></pre>
+
+        <p><strong>Show the result:</strong></p>
+        <pre><code>tree customer-assist/</code></pre>
+
+        <div class="expected">
+<pre>customer-assist/
+├── CLAUDE.md
+├── .gitignore
+└── .claude/
+    ├── context/
+    │   ├── agentic-patterns.md
+    │   ├── genai-framework.md
+    │   ├── now-assist-platform.md
+    │   ├── performance-tuning.md
+    │   ├── security-patterns.md
+    │   └── troubleshooting-guide.md
+    └── skills/
+        ├── agent-builder/
+        ├── api-integration/
+        ├── deployment-automation/
+        ├── now-assist-skill-builder/
+        ├── servicenow-troubleshooting/
+        └── testing-patterns/</pre>
+        </div>
+
+        <div class="talk-track">
+            "In seconds, we have a project with:
+            <ul>
+                <li>6 context files covering the entire Now Assist platform</li>
+                <li>6 skills for common development tasks</li>
+                <li>SPARC methodology template</li>
+                <li>Ready to use immediately"</li>
+            </ul>
+        </div>
+    </div>
+
+    <h2 id="part2">Part 2: Templates <span class="time-badge">3 min</span></h2>
+
+    <div class="demo-part">
+        <h3>List Available Templates</h3>
+        <pre><code>Show me the available Foundry templates</code></pre>
+        <p><strong>Expected:</strong> Lists sparc-starter, minimal, and standard templates.</p>
+
+        <h3>Create with Different Template</h3>
+        <pre><code>Create a project called "quick-test" using the minimal template</code></pre>
+
+        <p><strong>Show the difference:</strong></p>
+        <pre><code>tree quick-test/</code></pre>
+
+        <div class="expected">
+<pre>quick-test/
+├── CLAUDE.md
+└── .gitignore</pre>
+        </div>
+
+        <div class="talk-track">
+            "Different templates for different needs:
+            <ul>
+                <li><strong>sparc-starter:</strong> Full setup for production POCs</li>
+                <li><strong>standard:</strong> Just context, add skills as needed</li>
+                <li><strong>minimal:</strong> Bare-bones for experiments"</li>
+            </ul>
+        </div>
+    </div>
+
+    <h2 id="part3">Part 3: Resource Management <span class="time-badge">5 min</span></h2>
+
+    <div class="demo-part">
+        <h3>List Available Resources</h3>
+        <pre><code>List all available Foundry resources</code></pre>
+        <p><strong>Expected:</strong> Shows 6 context files, 6 skills, 3 templates.</p>
+
+        <h3>Search for Specific Content</h3>
+        <pre><code>Search Foundry for "GlideRecord"</code></pre>
+        <p><strong>Expected:</strong> Shows matches in context files and skills.</p>
+
+        <h3>Add a Skill to a Project</h3>
+        <pre><code>Add the testing-patterns skill to the quick-test project</code></pre>
+
+        <h3>Get Resource Information</h3>
+        <pre><code>Get information about the agent-builder skill</code></pre>
+    </div>
+
+    <h2 id="part4">Part 4: Pre-loaded Context <span class="time-badge">5 min</span></h2>
+
+    <div class="demo-part">
+        <p><strong>Open the project in Claude Code:</strong></p>
+        <pre><code>cd ~/foundry-demo/customer-assist
+claude</code></pre>
+
+        <h3>Test Context Awareness</h3>
+
+        <pre><code>What do you know about the Now Assist platform architecture?</code></pre>
+        <p><strong>Expected:</strong> Claude summarizes from <code>now-assist-platform.md</code>.</p>
+
+        <pre><code>How do I optimize GlideRecord queries for performance?</code></pre>
+        <p><strong>Expected:</strong> Claude answers using <code>performance-tuning.md</code>.</p>
+
+        <pre><code>What are the security best practices for ServiceNow development?</code></pre>
+        <p><strong>Expected:</strong> Claude references <code>security-patterns.md</code>.</p>
+
+        <div class="talk-track">
+            "Claude already knows our platform. No need to paste docs - it's pre-loaded."
+        </div>
+    </div>
+
+    <h2 id="part5">Part 5: Using Skills <span class="time-badge">5 min</span></h2>
+
+    <div class="demo-part">
+        <h3>Now Assist Skill Builder</h3>
+        <pre><code>Help me create a Now Assist skill that summarizes incident descriptions</code></pre>
+        <p><strong>Expected:</strong> Claude follows the skill-builder guidance, asks clarifying questions, generates manifest.</p>
+
+        <h3>API Integration</h3>
+        <pre><code>Help me build a REST API integration to query incidents</code></pre>
+        <p><strong>Expected:</strong> Claude provides code following api-integration patterns.</p>
+
+        <h3>Testing Patterns</h3>
+        <pre><code>How do I write unit tests for a Script Include?</code></pre>
+        <p><strong>Expected:</strong> Claude shows TestRunner pattern, mocking, ATF examples.</p>
+    </div>
+
+    <h2 id="part6">Part 6: ServiceNow Tools <span class="time-badge">10 min</span></h2>
+
+    <div class="demo-part">
+        <h3>Connect to Instance</h3>
+        <pre><code>Connect to my-dev-instance.service-now.com</code></pre>
+        <p>Or use saved credentials:</p>
+        <pre><code>Connect to ServiceNow using my saved credentials</code></pre>
+
+        <h3>Check Connection</h3>
+        <pre><code>Check my ServiceNow connection status</code></pre>
+
+        <h3>Query System Logs</h3>
+        <pre><code>Get the last 20 syslogs from the "AI Agent" source</code></pre>
+
+        <h3>Get AI Agent Logs</h3>
+        <pre><code>Get AIA logs from the last hour to see AI Agent execution traces</code></pre>
+
+        <h3>Run a Read-Only Script</h3>
+        <pre><code>Run this read-only script on ServiceNow:
+
+var gr = new GlideRecord('incident');
+gr.addQuery('active', true);
+gr.setLimit(10);
+gr.query();
+var count = 0;
+while(gr.next()) {
+    gs.info(gr.number + ': ' + gr.short_description);
+    count++;
+}
+gs.info('Total: ' + count + ' active incidents');</code></pre>
+
+        <h3>Query a Table</h3>
+        <pre><code>Query the incident table for the 5 most recent P1 incidents</code></pre>
+
+        <h3>Get Instance Info</h3>
+        <pre><code>Get information about the connected ServiceNow instance</code></pre>
+    </div>
+
+    <h2 id="part7">Part 7: Contribution Workflow <span class="time-badge">5 min</span></h2>
+
+    <div class="demo-part">
+        <h3>Create a New Resource</h3>
+        <pre><code>Create a new context file called "custom-integration-patterns"</code></pre>
+
+        <h3>Validate the Resource</h3>
+        <pre><code>Validate the custom-integration-patterns context file</code></pre>
+
+        <h3>Promote to Golden Repo</h3>
+        <pre><code>Promote the custom-integration-patterns context to the golden repo</code></pre>
+
+        <div class="talk-track">
+            "The contribution workflow ensures quality:
+            <ol>
+                <li>Create locally with scaffolding</li>
+                <li>Validate against standards</li>
+                <li>Promote with PR for team review"</li>
+            </ol>
+        </div>
+    </div>
+
+    <h2 id="part8">Part 8: Version Management <span class="time-badge">3 min</span></h2>
+
+    <div class="demo-part">
+        <h3>Check Version Status</h3>
+        <pre><code>Check the version status of resources in this project</code></pre>
+
+        <h3>Check for Updates</h3>
+        <pre><code>Check if there are any updates available for my project resources</code></pre>
+    </div>
+
+    <h2 id="reference">Complete Tool Reference</h2>
+
+    <div class="card">
+        <h3>Foundry Tools (12)</h3>
+        <table>
+            <thead>
+                <tr><th>Tool</th><th>Example Usage</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>foundry_init</code></td><td>"Create a new POC called my-project"</td></tr>
+                <tr><td><code>foundry_list</code></td><td>"List all available Foundry resources"</td></tr>
+                <tr><td><code>foundry_add</code></td><td>"Add the testing-patterns skill to this project"</td></tr>
+                <tr><td><code>foundry_sync</code></td><td>"Sync this project's resources with the golden repo"</td></tr>
+                <tr><td><code>foundry_info</code></td><td>"Get info about the agent-builder skill"</td></tr>
+                <tr><td><code>foundry_search</code></td><td>"Search Foundry for GlideRecord content"</td></tr>
+                <tr><td><code>foundry_new</code></td><td>"Create a new context file called my-patterns"</td></tr>
+                <tr><td><code>foundry_validate</code></td><td>"Validate the my-patterns context file"</td></tr>
+                <tr><td><code>foundry_promote</code></td><td>"Promote my-patterns to the golden repo"</td></tr>
+                <tr><td><code>foundry_external</code></td><td>"Add the @approved/servicenow-utils plugin"</td></tr>
+                <tr><td><code>foundry_version</code></td><td>"Check version status of project resources"</td></tr>
+                <tr><td><code>foundry_templates</code></td><td>"Show available project templates"</td></tr>
+            </tbody>
+        </table>
+
+        <h3>ServiceNow Tools (8)</h3>
+        <table>
+            <thead>
+                <tr><th>Tool</th><th>Example Usage</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>servicenow_connect</code></td><td>"Connect to my-instance.service-now.com"</td></tr>
+                <tr><td><code>servicenow_disconnect</code></td><td>"Disconnect from ServiceNow"</td></tr>
+                <tr><td><code>servicenow_status</code></td><td>"Check ServiceNow connection status"</td></tr>
+                <tr><td><code>servicenow_syslogs</code></td><td>"Get syslogs from the last hour"</td></tr>
+                <tr><td><code>servicenow_aia_logs</code></td><td>"Get AI Agent logs from today"</td></tr>
+                <tr><td><code>servicenow_query</code></td><td>"Query the incident table for P1s"</td></tr>
+                <tr><td><code>servicenow_script</code></td><td>"Run this script in read-only mode: ..."</td></tr>
+                <tr><td><code>servicenow_instance</code></td><td>"Get ServiceNow instance info"</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2 id="troubleshooting">Troubleshooting</h2>
+
+    <div class="card">
+        <h3>GitHub Auth Issues</h3>
+        <pre><code>gh auth status
+gh auth login
+gh repo view gapietro/foundry-golden</code></pre>
+
+        <h3>MCP Server Not Found</h3>
+        <pre><code>ls -la /Users/gpietro/projects/snaifmcp/foundry-mcp/dist/index.js
+cd /Users/gpietro/projects/snaifmcp/foundry-mcp && npm run build</code></pre>
+
+        <h3>Use Local Golden Repo</h3>
+        <pre><code>Create a POC using goldenPath /Users/gpietro/projects/snaifmcp/foundry-golden</code></pre>
+
+        <h3>Clear Cache</h3>
+        <pre><code>rm -rf ~/.foundry/golden</code></pre>
+    </div>
+
+    <h2 id="qa">Q&amp;A Prep</h2>
+
+    <div class="card">
+        <div class="qa-section">
+            <strong>Q: "How do team members authenticate?"</strong>
+            <p>"Run <code>gh auth login</code> once. The MCP server uses GitHub CLI for authentication."</p>
+        </div>
+
+        <div class="qa-section">
+            <strong>Q: "How do we add new skills or context?"</strong>
+            <p>"Use <code>foundry_add</code> to add to existing projects, or <code>foundry_new</code> to create new resources."</p>
+        </div>
+
+        <div class="qa-section">
+            <strong>Q: "Can we use external plugins?"</strong>
+            <p>"Yes, with <code>foundry_external</code>. We support @approved/* for vetted plugins and @github/* for direct references."</p>
+        </div>
+
+        <div class="qa-section">
+            <strong>Q: "What if I need different context for different POCs?"</strong>
+            <p>"Use different templates (sparc-starter, standard, minimal) or add specific resources with <code>foundry_add</code>."</p>
+        </div>
+
+        <div class="qa-section">
+            <strong>Q: "How do we update the golden repo?"</strong>
+            <p>"Use the contribution workflow: <code>foundry_new</code>, <code>foundry_validate</code>, <code>foundry_promote</code>."</p>
+        </div>
+
+        <div class="qa-section">
+            <strong>Q: "What about ServiceNow connectivity?"</strong>
+            <p>"Use <code>servicenow_connect</code> with credentials or saved profile. Credentials can be stored in ~/.servicenow/credentials.json."</p>
+        </div>
+    </div>
+
+    <h2>Cleanup</h2>
+
+    <div class="card cleanup">
+        <pre><code>rm -rf ~/foundry-demo/customer-assist
+rm -rf ~/foundry-demo/quick-test
+rm -rf ~/.foundry/golden  # Clear cache if needed</code></pre>
+    </div>
+
+</body>
+</html>

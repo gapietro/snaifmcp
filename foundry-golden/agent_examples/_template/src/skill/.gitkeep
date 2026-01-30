@@ -1,0 +1,8 @@
+# Now Assist Skill Definitions
+
+Place skill manifest and prompt files here.
+
+Example files:
+- skill-manifest.json - Skill configuration
+- system-prompt.md - The GenAI prompt
+- input-schema.json - Input parameter schema
