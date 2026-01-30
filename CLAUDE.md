@@ -85,6 +85,25 @@ snaifmcp/
     └── archive/              # Reference docs & future phase designs
 ```
 
+### Separate GitHub Repositories
+
+**IMPORTANT:** The `foundry-mcp/` and `foundry-golden/` folders have their own separate GitHub repositories in the Now-AI-Foundry organization. Changes to these folders must be committed and pushed to BOTH:
+
+1. **This repo** (`gapietro/snaifmcp`) - the development monorepo
+2. **Their respective org repos** - the production repos
+
+| Folder | Organization Repo |
+|--------|-------------------|
+| `foundry-mcp/` | https://github.com/Now-AI-Foundry/foundry-mcp |
+| `foundry-golden/` | https://github.com/Now-AI-Foundry/foundry-golden |
+
+**Workflow for changes to these folders:**
+1. Make changes in snaifmcp (this repo)
+2. Create PR and merge to snaifmcp/main
+3. `cd` into the folder (e.g., `cd foundry-mcp`)
+4. Create branch, commit, push, and PR to the org repo
+5. Merge to org repo main
+
 ## Documentation
 
 ### Spec (`docs/spec/`)
