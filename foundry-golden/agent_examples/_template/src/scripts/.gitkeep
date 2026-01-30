@@ -1,0 +1,8 @@
+# Script Includes and Business Rules
+
+Place server-side scripts here.
+
+Example files:
+- AgentUtils.js - Script Include with utility functions
+- business-rules.json - Business Rule configurations
+- scheduled-jobs.json - Scheduled Job configurations

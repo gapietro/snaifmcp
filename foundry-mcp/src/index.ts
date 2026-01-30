@@ -84,7 +84,7 @@ Use this to discover what resources are available before using foundry_add.`,
     properties: {
       type: {
         type: "string",
-        enum: ["context", "skills", "templates", "all"],
+        enum: ["context", "skills", "templates", "agent_examples", "all"],
         description: "Type of resources to list (default: 'all')",
       },
       verbose: {
@@ -99,11 +99,12 @@ const FOUNDRY_ADD_TOOL: Tool = {
   name: "foundry_add",
   description: `Add a Foundry resource to an existing project.
 
-Adds context files or skills from the golden repository to your project's .claude/ directory.
+Adds context files, skills, or agent examples from the golden repository to your project's .claude/ directory.
 
 Examples:
 - Add a context file: type="context", name="now-assist-platform"
 - Add a skill: type="skill", name="api-integration"
+- Add an agent example: type="agent_example", name="incident-summarizer"
 
 Use foundry_list to see available resources first.`,
   inputSchema: {
@@ -111,7 +112,7 @@ Use foundry_list to see available resources first.`,
     properties: {
       type: {
         type: "string",
-        enum: ["context", "skill"],
+        enum: ["context", "skill", "agent_example"],
         description: "Type of resource to add",
       },
       name: {
@@ -182,7 +183,7 @@ Use foundry_list first to see available resources.`,
     properties: {
       type: {
         type: "string",
-        enum: ["context", "skill", "template"],
+        enum: ["context", "skill", "template", "agent_example", "subagent", "hook"],
         description: "Type of resource",
       },
       name: {
@@ -214,7 +215,7 @@ Examples:
       },
       type: {
         type: "string",
-        enum: ["context", "skills", "templates", "all"],
+        enum: ["context", "skills", "templates", "agent_examples", "all"],
         description: "Filter by resource type (default: 'all')",
       },
     },
@@ -729,10 +730,12 @@ Superpowers is pre-registered in .claude/foundry-external.json for design-first 
 
 interface ResourceInfo {
   name: string;
-  type: "context" | "skill" | "template";
+  type: "context" | "skill" | "template" | "agent_example";
   path: string;
   description?: string;
   hasExamples?: boolean;
+  complexity?: string;  // For agent_examples
+  agentType?: string;   // For agent_examples
 }
 
 /**
@@ -922,6 +925,68 @@ async function listTemplates(
 }
 
 /**
+ * List agent examples
+ */
+async function listAgentExamples(
+  goldenPath: string,
+  verbose: boolean
+): Promise<ResourceInfo[]> {
+  const agentExamplesDir = path.join(goldenPath, "agent_examples");
+  const resources: ResourceInfo[] = [];
+
+  try {
+    const entries = await fs.readdir(agentExamplesDir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      // Skip _template and non-directories
+      if (!entry.isDirectory() || entry.name === "_template") {
+        continue;
+      }
+
+      const examplePath = path.join(agentExamplesDir, entry.name);
+      const agentFile = path.join(examplePath, "AGENT.md");
+      const configFile = path.join(examplePath, "config.json");
+
+      // Check if AGENT.md exists
+      try {
+        await fs.stat(agentFile);
+
+        const resource: ResourceInfo = {
+          name: entry.name,
+          type: "agent_example",
+          path: `agent_examples/${entry.name}`,
+        };
+
+        // Read config.json for metadata
+        try {
+          const configContent = await fs.readFile(configFile, "utf-8");
+          const config = JSON.parse(configContent);
+          resource.complexity = config.complexity;
+          resource.agentType = config.type;
+          if (config.description) {
+            resource.description = config.description;
+          }
+        } catch {
+          // No config or parse error
+        }
+
+        if (verbose && !resource.description) {
+          resource.description = await extractDescription(agentFile);
+        }
+
+        resources.push(resource);
+      } catch {
+        // No AGENT.md, skip
+      }
+    }
+  } catch {
+    // Directory doesn't exist
+  }
+
+  return resources;
+}
+
+/**
  * List all available resources
  */
 async function listResources(
@@ -946,6 +1011,11 @@ async function listResources(
     const templates: ResourceInfo[] =
       type === "all" || type === "templates"
         ? await listTemplates(goldenRepoPath, verbose)
+        : [];
+
+    const agentExamples: ResourceInfo[] =
+      type === "all" || type === "agent_examples"
+        ? await listAgentExamples(goldenRepoPath, verbose)
         : [];
 
     // Format output
@@ -988,7 +1058,37 @@ async function listResources(
       }
     }
 
-    const totalCount = contextFiles.length + skills.length + templates.length;
+    if (agentExamples.length > 0) {
+      output += `\n🤖 AGENT EXAMPLES (${agentExamples.length})\n${"─".repeat(40)}\n`;
+      output += "Reference implementations of Now Assist agents.\n\n";
+
+      for (const example of agentExamples) {
+        const complexity = example.complexity ? ` [${example.complexity}]` : "";
+        const agentType = example.agentType ? ` (${example.agentType})` : "";
+        output += `  • ${example.name}${agentType}${complexity}\n`;
+        if (verbose && example.description) {
+          output += `    ${example.description}\n`;
+        }
+      }
+    } else if (type === "all" || type === "agent_examples") {
+      output += `\n🤖 AGENT EXAMPLES (0)\n${"─".repeat(40)}\n`;
+      output += "Reference implementations of Now Assist agents.\n\n";
+      output += "  No agent examples available yet.\n";
+      output += "  Use the _template in agent_examples/ to create new examples.\n";
+    }
+
+    // Placeholder sections for future resource types
+    if (type === "all") {
+      output += `\n🔧 SUBAGENTS (coming soon)\n${"─".repeat(40)}\n`;
+      output += "Pre-configured sub-agents for claude-flow orchestration.\n";
+      output += "  Not yet implemented.\n";
+
+      output += `\n🪝 HOOKS (coming soon)\n${"─".repeat(40)}\n`;
+      output += "Lifecycle hooks for project automation.\n";
+      output += "  Not yet implemented.\n";
+    }
+
+    const totalCount = contextFiles.length + skills.length + templates.length + agentExamples.length;
 
     if (totalCount === 0) {
       output += `\nNo resources found for type: ${type}`;
@@ -1201,6 +1301,130 @@ Review SKILL.md for usage instructions.`,
 }
 
 /**
+ * Add an agent example to a project
+ */
+async function addAgentExample(
+  goldenPath: string,
+  projectPath: string,
+  name: string,
+  force: boolean
+): Promise<{ success: boolean; message: string }> {
+  // Source path
+  const sourcePath = path.join(goldenPath, "agent_examples", name);
+  const agentFile = path.join(sourcePath, "AGENT.md");
+
+  // Check if source exists (and is not _template)
+  if (name === "_template") {
+    return {
+      success: false,
+      message: `Cannot add "_template" - it's a template for creating new agent examples.
+
+Use the template as reference for creating your own agent examples.`,
+    };
+  }
+
+  if (!(await directoryExists(sourcePath)) || !(await fileExists(agentFile))) {
+    // Try to find available examples
+    const examplesDir = path.join(goldenPath, "agent_examples");
+    let available: string[] = [];
+    try {
+      const entries = await fs.readdir(examplesDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory() && entry.name !== "_template") {
+          const hasAgentMd = await fileExists(path.join(examplesDir, entry.name, "AGENT.md"));
+          if (hasAgentMd) {
+            available.push(entry.name);
+          }
+        }
+      }
+    } catch {
+      // Ignore
+    }
+
+    if (available.length === 0) {
+      return {
+        success: false,
+        message: `Agent example "${name}" not found.
+
+No agent examples are available yet.
+Use the _template in agent_examples/ as a reference for creating new examples.`,
+      };
+    }
+
+    return {
+      success: false,
+      message: `Agent example "${name}" not found.
+
+Available agent examples:
+${available.map(a => `  • ${a}`).join("\n")}
+
+Use foundry_list type="agent_examples" to see all available examples.`,
+    };
+  }
+
+  // Destination path
+  const claudeDir = path.join(projectPath, ".claude");
+  const destDir = path.join(claudeDir, "agent_examples", name);
+
+  // Check if .claude directory exists
+  if (!(await directoryExists(claudeDir))) {
+    return {
+      success: false,
+      message: `Project doesn't have a .claude/ directory at ${projectPath}
+
+This doesn't appear to be a Foundry project. Either:
+1. Use foundry_init to create a new project
+2. Create the .claude/ directory manually`,
+    };
+  }
+
+  // Check if already exists
+  if ((await directoryExists(destDir)) && !force) {
+    return {
+      success: false,
+      message: `Agent example "${name}" already exists in this project.
+
+Use force=true to overwrite, or remove the existing directory first.
+Location: ${destDir}`,
+    };
+  }
+
+  // Remove existing if force
+  if (force && (await directoryExists(destDir))) {
+    await fs.rm(destDir, { recursive: true, force: true });
+  }
+
+  // Copy agent example directory
+  await copyDirectory(sourcePath, destDir);
+
+  // List what was copied
+  const contents: string[] = [];
+  try {
+    const entries = await fs.readdir(destDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        contents.push(`${entry.name}/`);
+      } else {
+        contents.push(entry.name);
+      }
+    }
+  } catch {
+    // Ignore
+  }
+
+  return {
+    success: true,
+    message: `Added agent example "${name}" to project.
+
+Location: .claude/agent_examples/${name}/
+Contents:
+${contents.map(c => `  • ${c}`).join("\n")}
+
+Review AGENT.md for implementation details and usage instructions.`,
+  };
+}
+
+/**
  * Add a resource to a project
  */
 async function addResource(
@@ -1234,6 +1458,9 @@ async function addResource(
       case "skill":
         return await addSkill(goldenRepoPath, projectPath, name, force);
 
+      case "agent_example":
+        return await addAgentExample(goldenRepoPath, projectPath, name, force);
+
       default:
         return {
           success: false,
@@ -1241,7 +1468,8 @@ async function addResource(
 
 Supported types:
   • context - Add a context file (.md)
-  • skill - Add a skill directory`,
+  • skill - Add a skill directory
+  • agent_example - Add an agent example directory`,
         };
     }
   } catch (error) {
@@ -1824,6 +2052,186 @@ Use foundry_list type="templates" to see available templates.`,
 }
 
 /**
+ * Get info about an agent example
+ */
+async function getAgentExampleInfo(
+  goldenPath: string,
+  name: string
+): Promise<{ success: boolean; message: string }> {
+  const exampleDir = path.join(goldenPath, "agent_examples", name);
+  const agentFile = path.join(exampleDir, "AGENT.md");
+  const configFile = path.join(exampleDir, "config.json");
+
+  if (name === "_template") {
+    return {
+      success: false,
+      message: `"_template" is a template for creating new agent examples, not an actual example.
+
+Use foundry_list type="agent_examples" to see available examples.`,
+    };
+  }
+
+  const content = await readFileContent(agentFile);
+  if (!content) {
+    return {
+      success: false,
+      message: `Agent example "${name}" not found.
+
+Use foundry_list type="agent_examples" to see available examples.`,
+    };
+  }
+
+  const sections = extractMarkdownSections(content);
+  const wordCount = getWordCount(content);
+
+  // Extract title
+  const titleMatch = content.match(/^#\s+(.+)$/m);
+  const title = titleMatch ? titleMatch[1] : name;
+
+  // Get description
+  const intro = sections.get("intro") || "";
+  const firstPara = intro.split("\n\n")[0] || "No description available.";
+
+  // Read config.json for metadata
+  let config: Record<string, unknown> = {};
+  try {
+    const configContent = await fs.readFile(configFile, "utf-8");
+    config = JSON.parse(configContent);
+  } catch {
+    // No config
+  }
+
+  let output = `Agent Example: ${name}\n${"═".repeat(60)}\n\n`;
+  output += `🤖 ${title}\n\n`;
+  output += `${firstPara}\n\n`;
+
+  // Show metadata from config.json
+  if (Object.keys(config).length > 0) {
+    output += `${"─".repeat(40)}\n`;
+    output += `METADATA\n`;
+    output += `${"─".repeat(40)}\n`;
+    if (config.type) output += `Type: ${config.type}\n`;
+    if (config.complexity) output += `Complexity: ${config.complexity}\n`;
+    if (config.platform && typeof config.platform === "object") {
+      const platform = config.platform as Record<string, unknown>;
+      if (platform.minVersion) output += `Min Version: ${platform.minVersion}\n`;
+      if (Array.isArray(platform.plugins)) {
+        output += `Required Plugins:\n`;
+        for (const plugin of platform.plugins) {
+          output += `  • ${plugin}\n`;
+        }
+      }
+    }
+    if (Array.isArray(config.tags)) {
+      output += `Tags: ${config.tags.join(", ")}\n`;
+    }
+    output += "\n";
+  }
+
+  // Show structure
+  output += `${"─".repeat(40)}\n`;
+  output += `STRUCTURE\n`;
+  output += `${"─".repeat(40)}\n`;
+  output += `agent_examples/${name}/\n`;
+  output += `├── AGENT.md (~${wordCount} words)\n`;
+  output += `├── config.json\n`;
+
+  // List directories
+  try {
+    const entries = await fs.readdir(exampleDir, { withFileTypes: true });
+    const dirs = entries.filter(e => e.isDirectory());
+    const files = entries.filter(e => e.isFile() && e.name !== "AGENT.md" && e.name !== "config.json");
+
+    for (const dir of dirs) {
+      output += `└── ${dir.name}/\n`;
+    }
+    for (const file of files) {
+      output += `└── ${file.name}\n`;
+    }
+  } catch {
+    // Ignore
+  }
+  output += "\n";
+
+  // List sections from AGENT.md
+  const sectionNames = Array.from(sections.keys()).filter(s => s !== "intro");
+  if (sectionNames.length > 0) {
+    output += `${"─".repeat(40)}\n`;
+    output += `AGENT.md SECTIONS\n`;
+    output += `${"─".repeat(40)}\n`;
+    for (const section of sectionNames.slice(0, 10)) {
+      output += `  • ${section}\n`;
+    }
+    if (sectionNames.length > 10) {
+      output += `  ... and ${sectionNames.length - 10} more\n`;
+    }
+    output += "\n";
+  }
+
+  output += `${"─".repeat(40)}\n`;
+  output += `USAGE\n`;
+  output += `${"─".repeat(40)}\n`;
+  output += `Add to project: foundry_add type="agent_example" name="${name}"\n`;
+  output += `\nReview AGENT.md for implementation details after adding.`;
+
+  return { success: true, message: output };
+}
+
+/**
+ * Get info about a subagent (placeholder - not yet implemented)
+ */
+async function getSubagentInfo(
+  _goldenPath: string,
+  name: string
+): Promise<{ success: boolean; message: string }> {
+  return {
+    success: true,
+    message: `Subagent: ${name}
+${"═".repeat(60)}
+
+🔧 Subagents are not yet implemented.
+
+Subagents will be pre-configured sub-agents for claude-flow orchestration,
+allowing you to compose complex multi-agent workflows.
+
+Coming soon:
+  • Code review subagent
+  • Testing subagent
+  • Documentation subagent
+  • Research subagent
+
+Check back in a future version of Foundry for subagent support.`,
+  };
+}
+
+/**
+ * Get info about a hook (placeholder - not yet implemented)
+ */
+async function getHookInfo(
+  _goldenPath: string,
+  name: string
+): Promise<{ success: boolean; message: string }> {
+  return {
+    success: true,
+    message: `Hook: ${name}
+${"═".repeat(60)}
+
+🪝 Hooks are not yet implemented.
+
+Hooks will provide lifecycle automation for Foundry projects,
+triggering actions at key points in the development workflow.
+
+Coming soon:
+  • post-init: Run after project initialization
+  • pre-commit: Run before git commits
+  • post-add: Run after adding resources
+  • sync-complete: Run after syncing with golden repo
+
+Check back in a future version of Foundry for hook support.`,
+  };
+}
+
+/**
  * Get resource info
  */
 async function getResourceInfo(
@@ -1848,12 +2256,18 @@ async function getResourceInfo(
         return await getSkillInfo(goldenRepoPath, name);
       case "template":
         return await getTemplateInfo(goldenRepoPath, name);
+      case "agent_example":
+        return await getAgentExampleInfo(goldenRepoPath, name);
+      case "subagent":
+        return await getSubagentInfo(goldenRepoPath, name);
+      case "hook":
+        return await getHookInfo(goldenRepoPath, name);
       default:
         return {
           success: false,
           message: `Unknown resource type: ${resourceType}
 
-Supported types: context, skill, template`,
+Supported types: context, skill, template, agent_example, subagent, hook`,
         };
     }
   } catch (error) {
@@ -2707,7 +3121,7 @@ interface ExternalSource {
   installed?: boolean;
 }
 
-// Approved external sources (team-vetted)
+// Approved external sources (team-vetted) - fallback if registry file not found
 const APPROVED_SOURCES: ExternalSource[] = [
   {
     name: "superpowers",
@@ -2728,6 +3142,26 @@ const APPROVED_SOURCES: ExternalSource[] = [
     description: "Testing patterns for Now Assist skills",
   },
 ];
+
+/**
+ * Load external registry from golden repo
+ */
+async function loadExternalRegistry(goldenPath: string): Promise<ExternalSource[]> {
+  const registryPath = path.join(goldenPath, "external-registry.json");
+  try {
+    const content = await fs.readFile(registryPath, "utf-8");
+    const registry = JSON.parse(content);
+    return (registry.approved || []).map((item: { name: string; repo: string; description?: string; category?: string }) => ({
+      name: item.name,
+      type: "approved" as const,
+      repo: item.repo,
+      description: item.description,
+    }));
+  } catch {
+    // Fallback to hardcoded list
+    return APPROVED_SOURCES;
+  }
+}
 
 /**
  * Parse external source string
@@ -2783,9 +3217,19 @@ async function writeExternalConfig(projectPath: string, config: { sources: strin
 async function handleExternal(
   action: string,
   source: string | undefined,
-  projectPath: string
+  projectPath: string,
+  goldenPath?: string
 ): Promise<{ success: boolean; message: string }> {
   const claudeDir = path.join(projectPath, ".claude");
+
+  // Load registry from golden repo (with fallback to hardcoded)
+  let approvedSources: ExternalSource[];
+  try {
+    const goldenRepoPath = goldenPath || (await ensureGoldenRepo());
+    approvedSources = await loadExternalRegistry(goldenRepoPath);
+  } catch {
+    approvedSources = APPROVED_SOURCES;
+  }
 
   if (action === "list") {
     let output = `External Sources\n${"═".repeat(60)}\n\n`;
@@ -2794,7 +3238,7 @@ async function handleExternal(
     output += `📦 APPROVED SOURCES (@approved/*)\n${"─".repeat(40)}\n`;
     output += `Team-vetted plugins that are safe to use.\n\n`;
 
-    for (const src of APPROVED_SOURCES) {
+    for (const src of approvedSources) {
       output += `  • @approved/${src.name}\n`;
       if (src.description) {
         output += `    ${src.description}\n`;
@@ -2836,14 +3280,14 @@ Valid formats:
 
     // Check if approved source exists
     if (parsed.type === "approved") {
-      const approved = APPROVED_SOURCES.find(s => s.name === parsed.name);
+      const approved = approvedSources.find(s => s.name === parsed.name);
       if (!approved) {
         return {
           success: false,
           message: `Unknown approved source: ${parsed.name}
 
 Available approved sources:
-${APPROVED_SOURCES.map(s => `  • @approved/${s.name}`).join("\n")}`,
+${approvedSources.map(s => `  • @approved/${s.name}`).join("\n")}`,
         };
       }
     }
@@ -2871,7 +3315,7 @@ ${APPROVED_SOURCES.map(s => `  • @approved/${s.name}`).join("\n")}`,
     // Try to clone/fetch the external resource
     let fetchMessage = "";
     if (parsed.type === "approved") {
-      const approved = APPROVED_SOURCES.find(s => s.name === parsed.name);
+      const approved = approvedSources.find(s => s.name === parsed.name);
       if (approved?.repo) {
         fetchMessage = `\nNote: Run 'gh repo clone ${approved.repo}' to fetch the content.`;
       }
@@ -2922,7 +3366,7 @@ Registered in: .claude/foundry-external.json${fetchMessage}`,
     }
 
     if (parsed.type === "approved") {
-      const approved = APPROVED_SOURCES.find(s => s.name === parsed.name);
+      const approved = approvedSources.find(s => s.name === parsed.name);
       if (approved) {
         let output = `External Source: @approved/${approved.name}\n${"═".repeat(60)}\n\n`;
         output += `Type: Approved (team-vetted)\n`;

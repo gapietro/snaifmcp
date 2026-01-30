@@ -1,0 +1,7 @@
+# Flow Designer Exports
+
+Place Flow Designer JSON exports here.
+
+Example files:
+- main-flow.json - Primary orchestration flow
+- subflow-*.json - Reusable subflows
