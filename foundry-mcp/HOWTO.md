@@ -1,17 +1,17 @@
-# Foundry MCP Server: How-To Guide
+# Foundry MCP Server: Development Guide
 
-Detailed guide for developing, testing, and extending the Foundry MCP server.
+Guide for developing, testing, and extending the Foundry MCP server.
 
 ---
 
-## Table of Contents
+## Quick Start
 
-1. [Development Setup](#development-setup)
-2. [Building and Running](#building-and-running)
-3. [Testing](#testing)
-4. [Adding New Tools](#adding-new-tools)
-5. [Debugging](#debugging)
-6. [Deployment](#deployment)
+```bash
+cd foundry-mcp
+npm install
+npm run build
+npm test        # Run 90 tests
+```
 
 ---
 
@@ -19,25 +19,16 @@ Detailed guide for developing, testing, and extending the Foundry MCP server.
 
 ### Prerequisites
 
-- Node.js 18 or higher
-- npm 9 or higher
+- Node.js 18+
 - TypeScript knowledge
-- Claude Code installed (for integration testing)
-- **GitHub CLI authenticated** (`gh auth login`) - required for private golden repo access
+- Claude Code (for integration testing)
+- GitHub CLI (`gh auth login`) - for golden repo access
 
 ### Initial Setup
 
 ```bash
-# Clone the repository (if not already)
-cd /path/to/snaifmcp/foundry-mcp
-
-# Install dependencies
 npm install
-
-# Verify TypeScript compiles
 npm run build
-
-# Verify tests pass
 npm test
 ```
 
@@ -45,128 +36,90 @@ npm test
 
 **VS Code recommended extensions:**
 - TypeScript and JavaScript Language Features (built-in)
-- ESLint (if configured)
-- Prettier (optional)
-
-**tsconfig.json settings:**
-- Target: ES2022
-- Module: NodeNext
-- Strict mode enabled
+- ESLint (optional)
 
 ---
 
-## Building and Running
+## Project Structure
 
-### Build Commands
-
-```bash
-# One-time build
-npm run build
-
-# Watch mode (rebuilds on changes)
-npm run dev
-
-# Clean build
-rm -rf dist && npm run build
+```
+foundry-mcp/
+├── src/
+│   ├── index.ts              # Main server (12 Foundry tools)
+│   └── servicenow/           # ServiceNow tools (8)
+│       ├── index.ts          # Exports
+│       ├── tools.ts          # Tool definitions
+│       ├── client.ts         # HTTP client
+│       ├── connection-manager.ts
+│       └── types.ts
+├── dist/                     # Built JavaScript
+├── test/
+│   └── validate-init.ts      # 90 test cases
+├── package.json
+└── tsconfig.json
 ```
 
-### Output
+---
 
-Build produces:
-- `dist/index.js` - Main server entry point
-- `dist/index.d.ts` - TypeScript declarations
-- `dist/index.js.map` - Source maps for debugging
+## Build Commands
 
-### Running Directly
-
-For testing without Claude Code:
-
-```bash
-# Run the server (will wait for MCP connections on stdin/stdout)
-node dist/index.js
-
-# The server logs "Foundry MCP server started" to stderr on success
-```
+| Command | Description |
+|---------|-------------|
+| `npm install` | Install dependencies |
+| `npm run build` | Build TypeScript |
+| `npm run dev` | Watch mode |
+| `npm test` | Run all tests |
+| `npm run test:keep` | Keep test output |
 
 ---
 
 ## Testing
 
-### Acceptance Tests
-
-The test suite validates all MVP acceptance criteria:
+### Automated Tests (90 tests)
 
 ```bash
-# Run tests (cleans up after)
 npm test
+```
 
-# Run tests and keep output for inspection
+Categories:
+- Pre-flight (2): Golden repo, MCP build
+- Init (5): Project creation, structure
+- List (3): Context, skills, templates
+- Add (3): Resources, duplicate detection
+- Sync (3): Unchanged/modified/new detection
+- Info (3): Resource readability
+- Search (4): Name, content, scoring
+- New (3): Resource creation
+- Validate (4): Content validation
+- Promote (4): PR workflow
+- External (4): Plugin management
+- Version (3): Lock files, hashing
+- Templates (5): Settings, validation
+- Bonus (2): Examples, gitignore
+
+### Keep Test Output
+
+```bash
 npm run test:keep
-
-# Output location (when using --keep)
 ls .test-output/foundry-test-project/
 ```
 
-### What Tests Validate
-
-| Test | Acceptance Criteria |
-|------|---------------------|
-| Golden repo exists | Pre-flight check |
-| MCP server built | AC5: Works with Claude Code |
-| Project directory created | AC1: Creates directory |
-| Context files present | AC2: 3 context files |
-| Skills present | AC3: 2+ skill directories |
-| CLAUDE.md has SPARC structure | AC4: Template works |
-| No additional setup required | AC6: Ready to use |
-
 ### Manual Testing
 
-1. **Start Claude Code** with Foundry configured
+1. Create test project:
+```
+Create a test POC using goldenPath /path/to/foundry-golden
+```
 
-2. **Test basic init:**
-   ```
-   Create a test project called "manual-test"
-   ```
-
-3. **Test with custom path:**
-   ```
-   Create a project called "path-test" in /tmp
-   ```
-
-4. **Test with local golden repo:**
-   ```
-   Create "local-test" using goldenPath /path/to/foundry-golden
-   ```
-
-5. **Verify output:**
-   ```bash
-   ls -la manual-test/
-   cat manual-test/CLAUDE.md
-   ls -la manual-test/.claude/context/
-   ls -la manual-test/.claude/skills/
-   ```
-
-6. **Clean up:**
-   ```bash
-   rm -rf manual-test path-test local-test
-   ```
-
-### Testing Error Cases
-
-| Test Case | Expected Behavior |
-|-----------|-------------------|
-| Invalid project name (`my project!`) | Returns error about invalid characters |
-| Existing directory | Returns error about existing directory |
-| Missing golden repo | Returns error about clone failure |
-| Network offline | Uses cached golden repo or returns error |
+2. Test specific tool
+3. Verify output
+4. Clean up
 
 ---
 
 ## Adding New Tools
 
-### Step 1: Define the Tool
-
-Add tool definition in `src/index.ts`:
+### Step 1: Define Tool
 
 ```typescript
 const MY_NEW_TOOL: Tool = {
@@ -177,11 +130,7 @@ const MY_NEW_TOOL: Tool = {
     properties: {
       requiredParam: {
         type: "string",
-        description: "Description of parameter",
-      },
-      optionalParam: {
-        type: "boolean",
-        description: "Optional parameter",
+        description: "Description",
       },
     },
     required: ["requiredParam"],
@@ -189,16 +138,16 @@ const MY_NEW_TOOL: Tool = {
 };
 ```
 
-### Step 2: Register the Tool
+### Step 2: Register Tool
 
-Add to the tools list in `ListToolsRequestSchema` handler:
+Add to tools list in `ListToolsRequestSchema` handler:
 
 ```typescript
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: [FOUNDRY_INIT_TOOL, MY_NEW_TOOL],  // Add here
-  };
-});
+tools: [
+  FOUNDRY_INIT_TOOL,
+  // ... other tools
+  MY_NEW_TOOL,
+],
 ```
 
 ### Step 3: Implement Handler
@@ -206,138 +155,57 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 Add case in `CallToolRequestSchema` handler:
 
 ```typescript
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
+if (name === "foundry_mytool") {
+  const param = args?.requiredParam as string;
 
-  if (name === "foundry_init") {
-    // existing code...
-  }
-
-  if (name === "foundry_mytool") {
-    const requiredParam = args?.requiredParam as string;
-    const optionalParam = args?.optionalParam as boolean ?? false;
-
-    // Implement your logic
-    const result = await myToolImplementation(requiredParam, optionalParam);
-
-    return {
-      content: [{
-        type: "text" as const,
-        text: result.message,
-      }],
-      isError: !result.success,
-    };
-  }
+  // Implementation
 
   return {
     content: [{
       type: "text" as const,
-      text: `Unknown tool: ${name}`,
+      text: result.message,
     }],
-    isError: true,
+    isError: !result.success,
   };
-});
+}
 ```
 
 ### Step 4: Add Tests
 
-Create or update test file to cover new tool:
+Add test function in `validate-init.ts`:
 
 ```typescript
-// test/validate-mytool.ts
-async function testMyTool(): Promise<void> {
+async function testFoundryMyTool(): Promise<void> {
   // Test implementation
 }
 ```
 
-### Step 5: Update Documentation
-
-- Add tool to README.md tool reference
-- Update HOWTO.md if needed
-- Add to parent docs/HOWTO.md
-
----
-
-## Debugging
-
-### Enable Verbose Logging
-
-Add debug output to stderr (MCP uses stdout for protocol):
+Call in `main()`:
 
 ```typescript
-console.error("Debug: Processing request", request.params);
-```
-
-### Common Issues
-
-#### "Tool not appearing in Claude Code"
-
-1. Verify build succeeded: `ls dist/index.js`
-2. Check MCP config path is absolute
-3. Restart Claude Code completely
-4. Check stderr for startup errors
-
-#### "Golden repo clone fails"
-
-1. **Check GitHub CLI auth**: Run `gh auth status` - you must be logged in
-2. **Re-authenticate if needed**: Run `gh auth login`
-3. **Verify repo access**: Run `gh repo view gapietro/foundry-golden`
-4. Check network connectivity
-5. Try with `goldenPath` parameter to use local copy
-6. Check `~/.foundry/golden/` permissions
-
-#### "Project creation fails silently"
-
-1. Check target directory permissions
-2. Verify project name is valid
-3. Look for existing directory with same name
-4. Check disk space
-
-### Inspecting MCP Communication
-
-The MCP protocol uses JSON-RPC over stdin/stdout. To see raw messages:
-
-```bash
-# Run server and manually send requests
-echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node dist/index.js
+log("Foundry MyTool Tests:", "header");
+await testFoundryMyTool();
 ```
 
 ---
 
-## Deployment
+## ServiceNow Tools
 
-### Local Installation
+### Architecture
 
-For team members using from source:
-
-```bash
-# Clone repo
-git clone <repo-url>
-cd snaifmcp/foundry-mcp
-
-# Build
-npm install
-npm run build
-
-# Configure Claude Code with absolute path
+```
+tools.ts           → Tool definitions
+client.ts          → HTTP requests
+connection-manager.ts → Session cache
+types.ts           → TypeScript types
 ```
 
-### npm Publishing (Future)
+### Adding ServiceNow Tool
 
-When ready for broader distribution:
-
-1. Update `package.json` version
-2. Ensure `files` array is correct
-3. Test package locally: `npm pack`
-4. Publish: `npm publish`
-
-### Distribution Checklist
-
-- [ ] All tests pass
-- [ ] README is current
-- [ ] Version bumped appropriately
-- [ ] CHANGELOG updated (if exists)
-- [ ] No sensitive data in package
+1. Add to `SERVICENOW_TOOLS` in `tools.ts`
+2. Add handler in `handleServiceNowTool`
+3. Use `client.ts` for HTTP requests
+4. Handle errors appropriately
 
 ---
 
@@ -345,52 +213,41 @@ When ready for broader distribution:
 
 ### TypeScript Conventions
 
-- Use explicit types for function parameters
-- Use `const` assertions for object literals
-- Handle all error cases explicitly
-- Use async/await over raw promises
+- Explicit types for function parameters
+- `const` assertions for object literals
+- Async/await over raw promises
+- Handle all error cases
 
 ### Error Handling
 
 ```typescript
-// Good: Explicit error handling
 try {
   await riskyOperation();
 } catch (error) {
   return {
     success: false,
-    message: `Operation failed: ${error instanceof Error ? error.message : String(error)}`,
+    message: `Failed: ${error instanceof Error ? error.message : String(error)}`,
   };
-}
-
-// Good: Cleanup on failure
-try {
-  await createDirectory(path);
-  await copyFiles(src, path);
-} catch (error) {
-  // Clean up partial work
-  await fs.rm(path, { recursive: true, force: true }).catch(() => {});
-  throw error;
 }
 ```
 
 ### MCP Response Format
 
 ```typescript
-// Success response
+// Success
 return {
   content: [{
     type: "text" as const,
-    text: "Success message with helpful next steps",
+    text: "Success message",
   }],
   isError: false,
 };
 
-// Error response
+// Error
 return {
   content: [{
     type: "text" as const,
-    text: "Error: Clear description of what went wrong",
+    text: "Error: Description",
   }],
   isError: true,
 };
@@ -398,33 +255,38 @@ return {
 
 ---
 
-## Quick Reference
+## Debugging
 
-### Files
+### Enable Logging
+
+Add to stderr (MCP uses stdout for protocol):
+
+```typescript
+console.error("Debug:", data);
+```
+
+### Common Issues
+
+**Tool not appearing:**
+1. Check build succeeded
+2. Check MCP config path is absolute
+3. Restart Claude Code
+
+**Golden repo clone fails:**
+1. Check `gh auth status`
+2. Check network
+3. Use `goldenPath` parameter
+
+**Script blocked:**
+Check safety analyzer patterns in `index.ts`.
+
+---
+
+## Files Reference
 
 | File | Purpose |
 |------|---------|
-| `src/index.ts` | Main server implementation |
+| `src/index.ts` | Main server, Foundry tools |
+| `src/servicenow/*.ts` | ServiceNow tools |
 | `dist/index.js` | Built server (run this) |
-| `test/validate-init.ts` | Acceptance tests |
-| `package.json` | Dependencies and scripts |
-| `tsconfig.json` | TypeScript configuration |
-
-### Commands
-
-| Command | Description |
-|---------|-------------|
-| `npm install` | Install dependencies |
-| `npm run build` | Build TypeScript |
-| `npm run dev` | Build in watch mode |
-| `npm test` | Run acceptance tests |
-| `npm run test:keep` | Tests with output preserved |
-
-### MCP Tool Response
-
-```typescript
-{
-  content: [{ type: "text", text: "message" }],
-  isError: boolean
-}
-```
+| `test/validate-init.ts` | 90 test cases |

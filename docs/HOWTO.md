@@ -1,18 +1,20 @@
 # Foundry How-To Guide
 
-A practical guide for day-to-day use of Foundry to bootstrap and develop Now Assist POC projects.
+Comprehensive guide for using Foundry to bootstrap, develop, and debug Now Assist POC projects.
 
 ---
 
 ## Table of Contents
 
 1. [Initial Setup](#initial-setup)
-2. [Creating a New Project](#creating-a-new-project)
-3. [Working with Pre-loaded Context](#working-with-pre-loaded-context)
-4. [Using Skills](#using-skills)
-5. [Testing Foundry](#testing-foundry)
-6. [Troubleshooting](#troubleshooting)
+2. [Creating Projects](#creating-projects)
+3. [Managing Resources](#managing-resources)
+4. [Using Pre-loaded Context](#using-pre-loaded-context)
+5. [Using Skills](#using-skills)
+6. [ServiceNow Integration](#servicenow-integration)
 7. [Contributing Content](#contributing-content)
+8. [Testing](#testing)
+9. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -20,14 +22,13 @@ A practical guide for day-to-day use of Foundry to bootstrap and develop Now Ass
 
 ### Prerequisites
 
-- Node.js 18+ installed
+- Node.js 18+
 - Claude Code CLI installed and authenticated
-- Access to this repository
-- **GitHub CLI authenticated** - The golden repo is private. Run `gh auth login` first.
+- **GitHub CLI authenticated** - Run `gh auth login` (required for private golden repo)
 
-### One-Time Configuration
+### One-Time Setup
 
-#### Step 1: Build the MCP Server
+#### 1. Build the MCP Server
 
 ```bash
 cd /path/to/snaifmcp/foundry-mcp
@@ -35,249 +36,429 @@ npm install
 npm run build
 ```
 
-#### Step 2: Configure Claude Code
+#### 2. Configure Claude Code
 
-Add Foundry to your MCP configuration. Choose one:
-
-**Global Configuration** (recommended for team members):
+**Global Configuration** (recommended):
 ```bash
 # Edit ~/.claude/config.json
 {
   "mcpServers": {
     "foundry": {
       "command": "node",
-      "args": ["/absolute/path/to/snaifmcp/foundry-mcp/dist/index.js"]
+      "args": ["/absolute/path/to/foundry-mcp/dist/index.js"]
     }
   }
 }
 ```
 
-**Project Configuration** (for testing):
+**Project Configuration**:
 Create `.mcp.json` in your working directory:
 ```json
 {
   "mcpServers": {
     "foundry": {
       "command": "node",
-      "args": ["/absolute/path/to/snaifmcp/foundry-mcp/dist/index.js"]
+      "args": ["/absolute/path/to/foundry-mcp/dist/index.js"]
     }
   }
 }
 ```
 
-#### Step 3: Verify Installation
+#### 3. Verify Installation
 
-Start Claude Code and check that the `foundry_init` tool is available:
+Start Claude Code and check that tools are available:
 ```
-What tools do you have available?
+What Foundry and ServiceNow tools do you have available?
 ```
 
-You should see `foundry_init` in the list.
+Expected: 12 Foundry tools + 8 ServiceNow tools.
 
 ---
 
-## Creating a New Project
+## Creating Projects
 
-### Basic Usage
-
-In Claude Code, simply describe what you want:
+### Basic Project
 
 ```
-Create a new Now Assist POC called "acme-customer-demo"
+Create a new Now Assist POC called "customer-demo"
 ```
 
-Claude will:
-1. Call `foundry_init` with your project name
-2. Create the project directory
-3. Copy context files, skills, and template
-4. Report success with next steps
-
-### Specifying a Location
-
+Creates:
 ```
-Create a new Now Assist POC called "acme-demo" in /Users/me/projects/pocs
-```
-
-### Using Local Golden Repo (Development)
-
-For testing changes to the golden repo:
-
-```
-Create a new POC called "test-project" using the golden repo at /path/to/snaifmcp/foundry-golden
-```
-
-### What Gets Created
-
-```
-your-project/
-├── CLAUDE.md                    # Your project instructions (edit this!)
-├── .gitignore                   # Standard ignores
+customer-demo/
+├── CLAUDE.md                    # SPARC methodology
+├── .gitignore
 └── .claude/
-    ├── context/
-    │   ├── now-assist-platform.md    # Now Assist architecture & APIs
-    │   ├── genai-framework.md        # GenAI Controller patterns
-    │   └── agentic-patterns.md       # Agentic framework guidance
-    └── skills/
-        ├── now-assist-skill-builder/
-        │   ├── SKILL.md              # Skill creation instructions
-        │   └── examples/             # Example implementations
-        └── api-integration/
-            ├── SKILL.md              # API integration patterns
-            └── examples/             # Example code
+    ├── context/                 # 6 context files
+    └── skills/                  # 6 skills
+```
+
+### With Custom Path
+
+```
+Create a POC called "acme-poc" in /Users/me/projects
+```
+
+### With Different Template
+
+```
+Create a project called "quick-test" using the minimal template
+```
+
+Template options:
+- `sparc-starter` (default): Full setup with all context and skills
+- `standard`: Context files only, no pre-loaded skills
+- `minimal`: Just CLAUDE.md, no pre-loaded resources
+
+### List Available Templates
+
+```
+Show me the available Foundry templates
+```
+
+### Preview a Template
+
+```
+Show me what the standard template includes
 ```
 
 ---
 
-## Working with Pre-loaded Context
+## Managing Resources
 
-### How Context Works
-
-Files in `.claude/context/` are automatically available to Claude Code. You don't need to explicitly reference them - Claude will use this knowledge when relevant.
-
-### Context Files Explained
-
-#### `now-assist-platform.md`
-- Now Assist architecture overview
-- Available capabilities (summarization, generation, Q&A)
-- API endpoints and authentication
-- Configuration options
-
-**Use when:** Building any Now Assist feature, understanding platform capabilities
-
-#### `genai-framework.md`
-- GenAI Controller concepts
-- Skill invocation patterns
-- Prompt engineering guidelines
-- Response handling
-
-**Use when:** Creating GenAI skills, working with prompts, handling AI responses
-
-#### `agentic-patterns.md`
-- Tool definition patterns
-- Multi-step orchestration
-- Error handling strategies
-- Testing approaches
-
-**Use when:** Building agentic workflows, defining tools, orchestrating complex tasks
-
-### Referencing Context Explicitly
-
-If Claude isn't using context you expect, you can prompt it:
+### List All Resources
 
 ```
-Based on the Now Assist platform context in .claude/context/, how should I implement...
+List all available Foundry resources
+```
+
+Shows: 6 context files, 6 skills, 3 templates.
+
+### Add Resources to Project
+
+```
+Add the testing-patterns skill to this project
+```
+
+```
+Add the performance-tuning context to this project
+```
+
+### Get Resource Information
+
+```
+Get information about the agent-builder skill
+```
+
+### Search Resources
+
+```
+Search Foundry for "GlideRecord"
+```
+
+```
+Search Foundry for content about "security"
+```
+
+### Sync with Golden Repo
+
+```
+Sync this project's resources with the golden repo
+```
+
+Shows:
+- Unchanged resources
+- Modified resources
+- New resources available
+
+### Check Version Status
+
+```
+Check version status of resources in this project
+```
+
+### Check for Updates
+
+```
+Check if updates are available for my project resources
+```
+
+---
+
+## Using Pre-loaded Context
+
+### Context Files Available
+
+| File | Description |
+|------|-------------|
+| `now-assist-platform.md` | Platform architecture, APIs, configuration |
+| `genai-framework.md` | GenAI Controller, skill invocation |
+| `agentic-patterns.md` | Tool definitions, orchestration |
+| `troubleshooting-guide.md` | Debug patterns, syslogs, common issues |
+| `security-patterns.md` | ACLs, roles, secure coding |
+| `performance-tuning.md` | Query optimization, caching |
+
+### Example Queries
+
+```
+What's the Now Assist platform architecture?
+```
+
+```
+How do I optimize GlideRecord queries?
+```
+
+```
+What are the security best practices for ACLs?
+```
+
+```
+How do I debug AIA log issues?
 ```
 
 ---
 
 ## Using Skills
 
-### What Are Skills?
+### Skills Available
 
-Skills are instructions that teach Claude how to perform specific tasks. They include:
-- Step-by-step guidance
-- Best practices
-- Example code
+| Skill | Use Case |
+|-------|----------|
+| `now-assist-skill-builder` | Creating Now Assist skills |
+| `api-integration` | Building REST API integrations |
+| `servicenow-troubleshooting` | Debugging with tools |
+| `agent-builder` | Creating AI Agents |
+| `testing-patterns` | Unit tests, ATF, mocking |
+| `deployment-automation` | CI/CD, update sets |
 
-### Available Skills
+### Example Usage
 
 #### Now Assist Skill Builder
-Location: `.claude/skills/now-assist-skill-builder/`
 
-Teaches Claude how to create Now Assist skills including:
-- Skill manifest structure
-- Implementation patterns
-- Testing and deployment
-
-**Invoke with:**
 ```
-Help me create a new Now Assist skill for summarizing incidents
+Help me create a Now Assist skill that summarizes incident descriptions
 ```
 
 #### API Integration
-Location: `.claude/skills/api-integration/`
-
-Teaches Claude ServiceNow API patterns including:
-- REST API authentication
-- CRUD operations
-- Error handling
-- Pagination
-
-**Invoke with:**
-```
-Help me integrate with the ServiceNow Incident API
-```
-
-### Skill File Structure
 
 ```
-skill-name/
-├── SKILL.md           # Main instructions (required)
-└── examples/          # Example implementations (optional)
-    ├── example1.js
-    └── example2.js
+Help me build a REST API integration to query ServiceNow incidents
+```
+
+#### Testing Patterns
+
+```
+How do I write unit tests for a Script Include?
+Show me how to mock GlideRecord
+```
+
+#### Agent Builder
+
+```
+Help me design an AI Agent for incident triage
+```
+
+#### Deployment Automation
+
+```
+Show me how to set up a CI/CD pipeline for ServiceNow
 ```
 
 ---
 
-## Testing Foundry
+## ServiceNow Integration
 
-### Running Acceptance Tests
+### Connecting
 
-The test suite validates all MVP acceptance criteria:
+#### Basic Connection
+
+```
+Connect to my-instance.service-now.com with username admin
+```
+
+#### Using Saved Credentials
+
+Create `~/.servicenow/credentials.json`:
+```json
+{
+  "default": {
+    "instance": "https://my-instance.service-now.com",
+    "username": "admin",
+    "password": "your-password"
+  }
+}
+```
+
+Then:
+```
+Connect to ServiceNow using my saved credentials
+```
+
+#### Check Connection
+
+```
+Check my ServiceNow connection status
+```
+
+#### Disconnect
+
+```
+Disconnect from ServiceNow
+```
+
+### Querying
+
+#### System Logs
+
+```
+Get the last 20 syslogs
+Get syslogs from the "AI Agent" source in the last hour
+Get error-level syslogs from today
+```
+
+#### AIA Logs (AI Agent)
+
+```
+Get AIA logs from the last hour
+Get AI Agent execution traces from today
+```
+
+#### Table Queries
+
+```
+Query the incident table for active P1 incidents
+Query sys_user for users with admin role
+```
+
+#### Instance Info
+
+```
+Get information about the connected ServiceNow instance
+```
+
+### Script Execution
+
+#### Read-Only Mode
+
+```
+Run this script in read-only mode:
+
+var gr = new GlideRecord('incident');
+gr.addQuery('active', true);
+gr.setLimit(10);
+gr.query();
+while(gr.next()) {
+    gs.info(gr.number + ': ' + gr.short_description);
+}
+```
+
+#### Execute Mode (Requires Confirmation)
+
+```
+Run this script on ServiceNow:
+
+var gr = new GlideRecord('incident');
+gr.get('sys_id_here');
+gr.priority = '2';
+gr.update();
+```
+
+#### Script Safety
+
+Blocked patterns:
+- GlideRecord deletion without limits
+- System configuration changes
+- User/role modifications
+- Dangerous GlideSystem calls
+
+---
+
+## Contributing Content
+
+### Create New Context
+
+```
+Create a new context file called "custom-patterns"
+```
+
+Creates scaffold with proper structure.
+
+### Create New Skill
+
+```
+Create a new skill called "my-workflow"
+```
+
+Creates:
+```
+.claude/skills/my-workflow/
+├── SKILL.md
+└── examples/
+```
+
+### Validate Content
+
+```
+Validate the custom-patterns context file
+```
+
+Checks:
+- Minimum word count (50 words)
+- Has title (# header)
+- No placeholder text (TODO, FIXME)
+- Proper structure
+
+### Promote to Golden Repo
+
+```
+Promote custom-patterns to the golden repo with message "Add caching patterns"
+```
+
+Creates:
+- Branch: `foundry/context/custom-patterns-YYYYMMDD`
+- PR with proper format
+- Requires team review
+
+---
+
+## Testing
+
+### Run All Tests
 
 ```bash
 cd foundry-mcp
 npm test
 ```
 
-**Expected output:**
+Expected output:
 ```
 ═══════════════════════════════════════════════════════════
   FOUNDRY MVP ACCEPTANCE TEST
 ═══════════════════════════════════════════════════════════
 
-Pre-flight checks:
-✓ Golden repo exists: Found at /path/to/foundry-golden
-✓ AC5: MCP server built: dist/index.js exists
-
-Running foundry_init simulation...
-✓ Project created successfully
-
-Acceptance Criteria Tests:
-✓ AC1: Project directory created
-✓ AC2: Context files present: All 3 context files found
-✓ AC3: Skills present: Found 2 skills
-✓ AC4: CLAUDE.md has SPARC structure
-✓ AC6: No additional setup required
-
-SUMMARY
-Passed: 8/8
+Passed: 90/90
 ```
 
-### Keeping Test Output
-
-To inspect the generated project:
+### Test with Output Preserved
 
 ```bash
 npm run test:keep
+ls .test-output/foundry-test-project/
 ```
-
-Test output is saved to `foundry-mcp/.test-output/`
 
 ### Manual Testing
 
-1. Create a test project:
+1. Create test project:
 ```
-In Claude Code: Create a test POC called "manual-test" using goldenPath /path/to/foundry-golden
+Create a test POC called "manual-test" using goldenPath /path/to/foundry-golden
 ```
 
-2. Verify the structure:
+2. Verify structure:
 ```bash
-ls -la manual-test/
-ls -la manual-test/.claude/context/
-ls -la manual-test/.claude/skills/
+tree manual-test/
 cat manual-test/CLAUDE.md
+ls manual-test/.claude/context/
+ls manual-test/.claude/skills/
 ```
 
 3. Clean up:
@@ -291,146 +472,113 @@ rm -rf manual-test/
 
 ### "foundry_init tool not found"
 
-**Cause:** MCP server not configured or not built
+1. Check build:
+```bash
+ls foundry-mcp/dist/index.js
+```
 
-**Fix:**
-1. Verify the server is built:
-   ```bash
-   ls foundry-mcp/dist/index.js
-   ```
-2. Check your MCP configuration path is absolute
+2. Check MCP config path is absolute
+
 3. Restart Claude Code
 
-### "Failed to clone golden repository" or "GitHub authentication required"
+### "GitHub authentication required"
 
-**Cause:** Not authenticated with GitHub CLI, or repo not accessible
+```bash
+gh auth status
+gh auth login
+gh repo view gapietro/foundry-golden
+```
 
-**Fix:**
-1. Check GitHub CLI auth status:
-   ```bash
-   gh auth status
-   ```
+### "Failed to clone golden repository"
 
-2. If not logged in, authenticate:
-   ```bash
-   gh auth login
-   ```
+1. Check GitHub CLI auth
+2. Check network connectivity
+3. Use local golden repo:
+```
+Create a POC using goldenPath /path/to/foundry-golden
+```
 
-3. Verify access to the private repo:
-   ```bash
-   gh repo view gapietro/foundry-golden
-   ```
+### "ServiceNow authentication failed"
 
-4. Alternatively, use the `goldenPath` parameter to point to local golden repo:
-   ```
-   Create a POC using goldenPath /path/to/snaifmcp/foundry-golden
-   ```
+1. Check instance URL format: `https://instance.service-now.com`
+2. Verify credentials
+3. Check user has required roles
 
-### "Project directory already exists"
+### "Script blocked"
 
-**Cause:** You're trying to create a project with an existing name
-
-**Fix:** Choose a different name or delete the existing directory
-
-### "Invalid project name"
-
-**Cause:** Project name contains invalid characters
-
-**Fix:** Use only letters, numbers, hyphens, and underscores
+Remove dangerous operations:
+- `deleteRecord()` without limits
+- System table modifications
+- User/role changes
 
 ### Context Not Being Used
 
-**Cause:** Claude may not automatically reference context files
-
-**Fix:** Explicitly mention the context:
+Explicitly reference context:
 ```
-Using the Now Assist platform context, help me...
+Using the Now Assist platform context, explain...
 ```
 
-### MCP Server Errors
+### Clear Caches
 
-Check the server logs:
 ```bash
-# Run server directly to see errors
-node foundry-mcp/dist/index.js
+# Clear golden repo cache
+rm -rf ~/.foundry/golden
+
+# Clear ServiceNow session
+# (disconnect and reconnect)
 ```
-
----
-
-## Contributing Content
-
-### Adding New Context
-
-1. Create a markdown file in `foundry-golden/context/`:
-   ```bash
-   touch foundry-golden/context/new-topic.md
-   ```
-
-2. Write comprehensive documentation including:
-   - Overview/introduction
-   - Key concepts
-   - Code examples
-   - Best practices
-
-3. Test by creating a new project and verifying the context is included
-
-### Adding New Skills
-
-1. Create a skill directory:
-   ```bash
-   mkdir -p foundry-golden/skills/my-skill/examples
-   ```
-
-2. Create `SKILL.md` with:
-   - Clear instructions for Claude
-   - Step-by-step guidance
-   - Do's and don'ts
-   - Example usage
-
-3. Add example code in `examples/`
-
-4. Test the skill in a new project
-
-### Updating Templates
-
-1. Edit `foundry-golden/templates/sparc-starter/CLAUDE.md`
-
-2. Use `{{PROJECT_NAME}}` as a placeholder - it will be replaced during init
-
-3. Test by creating a new project
 
 ---
 
 ## Quick Reference
 
-### Commands
+### Commands Summary
 
-| Action | How |
-|--------|-----|
-| Create project | "Create a Now Assist POC called NAME" |
-| Create in specific location | "Create POC NAME in /path/to/dir" |
-| Use local golden repo | "Create POC using goldenPath /path/to/golden" |
-| Run tests | `cd foundry-mcp && npm test` |
-| Build server | `cd foundry-mcp && npm run build` |
+| Action | Example |
+|--------|---------|
+| Create project | "Create a POC called my-project" |
+| Different template | "Create project using minimal template" |
+| List resources | "List all Foundry resources" |
+| Add resource | "Add testing-patterns skill" |
+| Search | "Search Foundry for GlideRecord" |
+| Connect ServiceNow | "Connect to instance.service-now.com" |
+| Query logs | "Get syslogs from last hour" |
+| Run script | "Run this read-only script: ..." |
+| Create content | "Create a new context file called X" |
+| Validate | "Validate the X context file" |
+| Promote | "Promote X to golden repo" |
 
 ### File Locations
 
 | What | Where |
 |------|-------|
-| MCP server source | `foundry-mcp/src/index.ts` |
-| Built server | `foundry-mcp/dist/index.js` |
+| MCP server | `foundry-mcp/dist/index.js` |
+| Tests | `foundry-mcp/test/validate-init.ts` |
 | Context files | `foundry-golden/context/` |
 | Skills | `foundry-golden/skills/` |
-| Template | `foundry-golden/templates/sparc-starter/` |
-| Tests | `foundry-mcp/test/` |
+| Templates | `foundry-golden/templates/` |
+| Golden repo cache | `~/.foundry/golden/` |
+| ServiceNow credentials | `~/.servicenow/credentials.json` |
 
 ### Project Structure After Init
 
 ```
 my-project/
-├── CLAUDE.md           # Edit this for your project
+├── CLAUDE.md           # Edit for your project
 ├── .gitignore
 └── .claude/
-    ├── context/        # Reference material (read-only)
-    └── skills/         # Skill instructions (read-only)
+    ├── context/        # Reference material
+    │   ├── now-assist-platform.md
+    │   ├── genai-framework.md
+    │   ├── agentic-patterns.md
+    │   ├── troubleshooting-guide.md
+    │   ├── security-patterns.md
+    │   └── performance-tuning.md
+    └── skills/         # Task guidance
+        ├── now-assist-skill-builder/
+        ├── api-integration/
+        ├── servicenow-troubleshooting/
+        ├── agent-builder/
+        ├── testing-patterns/
+        └── deployment-automation/
 ```

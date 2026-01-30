@@ -53,13 +53,20 @@ customer-demo/
 ├── CLAUDE.md                    # SPARC methodology template
 ├── .gitignore
 └── .claude/
-    ├── context/
+    ├── context/                 # 6 context files
     │   ├── now-assist-platform.md
     │   ├── genai-framework.md
-    │   └── agentic-patterns.md
-    └── skills/
+    │   ├── agentic-patterns.md
+    │   ├── troubleshooting-guide.md
+    │   ├── security-patterns.md
+    │   └── performance-tuning.md
+    └── skills/                  # 6 skills with examples
         ├── now-assist-skill-builder/
-        └── api-integration/
+        ├── api-integration/
+        ├── servicenow-troubleshooting/
+        ├── agent-builder/
+        ├── testing-patterns/
+        └── deployment-automation/
 ```
 
 ### 3. Start Building
@@ -69,23 +76,75 @@ cd customer-demo
 claude   # Opens Claude Code with pre-loaded context
 ```
 
-## What's Included
+---
 
-### Context Files
+## Available Tools
+
+### Foundry Tools (12)
+
+| Tool | Description |
+|------|-------------|
+| `foundry_init` | Bootstrap a new Now Assist POC project |
+| `foundry_list` | List available resources (context, skills, templates) |
+| `foundry_add` | Add resources to an existing project |
+| `foundry_sync` | Update project resources to latest versions |
+| `foundry_info` | Get detailed information about a resource |
+| `foundry_search` | Search across all resources |
+| `foundry_new` | Create a new resource (context file or skill) |
+| `foundry_validate` | Validate resources before promotion |
+| `foundry_promote` | Submit resources to the golden repo |
+| `foundry_external` | Manage external plugins (@approved/*, @github/*) |
+| `foundry_version` | Manage resource versions and check for updates |
+| `foundry_templates` | List and preview available templates |
+
+### ServiceNow Tools (8)
+
+| Tool | Description |
+|------|-------------|
+| `servicenow_connect` | Connect to a ServiceNow instance |
+| `servicenow_disconnect` | Disconnect from current instance |
+| `servicenow_status` | Check connection status |
+| `servicenow_syslogs` | Query system logs with filters |
+| `servicenow_aia_logs` | Get AI Agent execution traces |
+| `servicenow_query` | Execute GlideRecord-style queries |
+| `servicenow_script` | Execute background scripts (with safety rails) |
+| `servicenow_instance` | Get instance info and health status |
+
+---
+
+## Golden Repository Content
+
+### Context Files (6)
+
 | File | Description |
 |------|-------------|
 | `now-assist-platform.md` | Now Assist architecture, capabilities, APIs |
 | `genai-framework.md` | GenAI Controller, skill invocation patterns |
 | `agentic-patterns.md` | Agentic framework, tool use, orchestration |
+| `troubleshooting-guide.md` | Common issues, debug patterns, syslogs |
+| `security-patterns.md` | ACLs, roles, secure coding practices |
+| `performance-tuning.md` | Query optimization, caching, best practices |
 
-### Skills
+### Skills (6)
+
 | Skill | Description |
 |-------|-------------|
-| `now-assist-skill-builder` | Instructions for creating Now Assist skills |
-| `api-integration` | ServiceNow REST API patterns and examples |
+| `now-assist-skill-builder` | Creating custom Now Assist skills |
+| `api-integration` | ServiceNow REST API patterns |
+| `servicenow-troubleshooting` | Debug with syslogs, AIA logs, scripts |
+| `agent-builder` | Creating AI Agents |
+| `testing-patterns` | Unit testing, ATF, mocking |
+| `deployment-automation` | CI/CD, update sets, app publishing |
 
-### Template
-- **SPARC Starter**: Pre-configured CLAUDE.md with Specification → Pseudocode → Architecture → Refinement → Completion methodology
+### Templates (3)
+
+| Template | Description |
+|----------|-------------|
+| `sparc-starter` | Full SPARC methodology with all context and skills (default) |
+| `standard` | Context files only, no pre-loaded skills |
+| `minimal` | Bare-bones CLAUDE.md only |
+
+---
 
 ## Repository Structure
 
@@ -93,20 +152,25 @@ claude   # Opens Claude Code with pre-loaded context
 snaifmcp/
 ├── README.md                 # This file
 ├── CLAUDE.md                 # Project guidance for Claude Code
+├── DEMO_SCRIPT.md            # Demo walkthrough guide
 ├── .mcp.json                 # MCP server configuration
 ├── foundry-mcp/              # MCP server implementation
-│   ├── src/index.ts          # Server source code
+│   ├── src/
+│   │   ├── index.ts          # Main server (Foundry tools)
+│   │   └── servicenow/       # ServiceNow tools
 │   ├── dist/                 # Built server (ready to use)
-│   └── test/                 # Validation tests
+│   └── test/                 # Test suite
 ├── foundry-golden/           # Golden repository content
-│   ├── context/              # Pre-loaded context files
-│   ├── skills/               # Reusable skills
-│   └── templates/            # Project templates
+│   ├── context/              # 6 context files
+│   ├── skills/               # 6 skills with examples
+│   └── templates/            # 3 project templates
 └── docs/
     ├── spec/                 # Specifications
-    ├── plan/                 # Implementation plans
+    ├── plan/                 # Implementation plans & backlog
     └── archive/              # Reference documentation
 ```
+
+---
 
 ## Development
 
@@ -122,7 +186,8 @@ npm run build
 
 ```bash
 cd foundry-mcp
-npm test
+npm test              # Run all tests (90 tests)
+npm run test:keep     # Run tests, keep output for inspection
 ```
 
 ### Local Development
@@ -132,37 +197,76 @@ cd foundry-mcp
 npm run dev   # Watch mode for TypeScript compilation
 ```
 
-## Tool Reference
-
-### `foundry_init`
-
-Bootstrap a new Now Assist POC project.
-
-**Parameters:**
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `projectName` | Yes | Name of the project directory (alphanumeric, hyphens, underscores) |
-| `path` | No | Parent directory for the project (defaults to current directory) |
-| `goldenPath` | No | Local path to foundry-golden repo (for development/testing) |
-
-**Example:**
-```
-Use foundry_init to create a project called "acme-poc" in /Users/me/projects
-```
-
-## Roadmap
-
-- [x] **MVP**: `foundry_init` with context, skills, and SPARC template
-- [ ] **Phase 2**: `foundry_add` for incremental resource addition
-- [ ] **Phase 3**: Search, catalog, and discovery tools
-- [ ] **Phase 4**: Contribution workflow (`foundry_new`, `foundry_promote`)
+---
 
 ## Documentation
 
+- [Demo Script](DEMO_SCRIPT.md) - Complete demo walkthrough
 - [How-To Guide](docs/HOWTO.md) - Day-to-day usage and testing
-- [MVP Specification](docs/spec/foundry-mvp-spec.md) - Requirements and acceptance criteria
-- [Implementation Plan](docs/plan/foundry-implementation-plan.md) - Technical roadmap
-- [Next Steps](docs/plan/next-steps.md) - Post-MVP implementation plan
+- [MCP Server README](foundry-mcp/README.md) - Server development guide
+- [Golden Repo README](foundry-golden/README.md) - Content contribution guide
+- [Backlog](docs/plan/backlog.md) - Feature tracking and roadmap
+
+---
+
+## Example Workflows
+
+### Create a New POC
+
+```
+Create a new Now Assist POC called "acme-incident-assistant"
+```
+
+### Use a Different Template
+
+```
+Create a project called "quick-test" using the minimal template
+```
+
+### Add a Skill to Existing Project
+
+```
+Add the testing-patterns skill to this project
+```
+
+### Search for Resources
+
+```
+Search Foundry for "GlideRecord" content
+```
+
+### Connect to ServiceNow and Debug
+
+```
+Connect to my-dev-instance.service-now.com
+Query recent syslogs with source "AI Agent"
+Get the AIA logs for the last hour
+```
+
+### Execute a Background Script
+
+```
+Run this script on ServiceNow in read-only mode:
+var gr = new GlideRecord('incident');
+gr.addQuery('active', true);
+gr.setLimit(5);
+gr.query();
+while(gr.next()) { gs.info(gr.number); }
+```
+
+---
+
+## Roadmap
+
+- [x] **Phase 1 (MVP)**: `foundry_init` with context, skills, and SPARC template
+- [x] **Phase 2**: `foundry_list`, `foundry_add`, `foundry_sync`
+- [x] **Phase 3**: `foundry_info`, `foundry_search`
+- [x] **Phase 4**: `foundry_new`, `foundry_validate`, `foundry_promote`
+- [x] **Phase 5**: External plugins, versioning, multiple templates
+- [x] **ServiceNow Tools**: Connect, query, syslogs, AIA logs, scripts
+- [ ] **Technical Debt**: TypeScript strict mode, ESLint, integration tests
+
+---
 
 ## License
 
