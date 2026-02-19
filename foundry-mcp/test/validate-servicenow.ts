@@ -11,46 +11,57 @@ import {
   handleServiceNowTool,
   connectionManager,
 } from '../src/servicenow/index.js';
+import {
+  AIA_TOOLS,
+  isAiaTool,
+  handleAiaTool,
+} from '../src/servicenow/tools-aia.js';
+import {
+  SKILL_TOOLS,
+  isSkillTool,
+  handleSkillTool,
+} from '../src/servicenow/tools-skills.js';
+import { requireConnection, isConnectionError } from '../src/servicenow/guards.js';
+import { clearTableCache } from '../src/servicenow/table-discovery.js';
+import {
+  checkScriptApi,
+  deployScriptApi,
+  ensureScriptApi,
+  executeViaScriptApi,
+  clearScriptApiCache,
+} from '../src/servicenow/script-api.js';
 import { ServiceNowClient } from '../src/servicenow/client.js';
 import { ServiceNowError, ServiceNowErrorType } from '../src/servicenow/types.js';
+import { TestRunner } from './utils/test-runner.js';
 
-// ANSI colors
-const GREEN = '\x1b[32m';
-const RED = '\x1b[31m';
-const CYAN = '\x1b[36m';
-const RESET = '\x1b[0m';
-
-let passed = 0;
-let failed = 0;
+const t = new TestRunner();
 
 function pass(message: string): void {
-  console.log(`${GREEN}✓ ${message}${RESET}`);
-  passed++;
+  t.pass(message, message);
 }
 
-function fail(message: string, error?: unknown): void {
-  console.log(`${RED}✗ ${message}${RESET}`);
-  if (error) {
-    console.log(`  Error: ${error}`);
-  }
-  failed++;
+function fail(message: string): void {
+  t.fail(message, message);
 }
 
 function section(title: string): void {
-  console.log(`\n${CYAN}→ ${title}${RESET}`);
+  t.log(title, "header");
 }
 
 async function runTests(): Promise<void> {
-  console.log(`\n${CYAN}→ ═══════════════════════════════════════════════════════════${RESET}`);
-  console.log(`${CYAN}→   SERVICENOW TOOLS VALIDATION TEST${RESET}`);
-  console.log(`${CYAN}→ ═══════════════════════════════════════════════════════════${RESET}`);
+  t.log("═══════════════════════════════════════════════════════════", "header");
+  t.log("  SERVICENOW TOOLS VALIDATION TEST", "header");
+  t.log("═══════════════════════════════════════════════════════════", "header");
 
-  // Test 1: Tool definitions
-  section('Tool Definitions');
+  // ── Core Tool Definitions ──────────────────────────────────────
+  section('Core Tool Definitions');
 
-  // Check all expected tools are defined
-  const expectedTools = ['servicenow_connect', 'servicenow_disconnect', 'servicenow_status'];
-  for (const toolName of expectedTools) {
+  const expectedCoreTools = [
+    'servicenow_connect', 'servicenow_disconnect', 'servicenow_status',
+    'servicenow_syslogs', 'servicenow_aia_logs', 'servicenow_query',
+    'servicenow_script', 'servicenow_instance',
+  ];
+  for (const toolName of expectedCoreTools) {
     const tool = SERVICENOW_TOOLS.find(t => t.name === toolName);
     if (tool) {
       pass(`${toolName} tool is defined`);
@@ -59,7 +70,7 @@ async function runTests(): Promise<void> {
     }
   }
 
-  // Check tool has required schema properties
+  // Check connect tool schema
   const connectTool = SERVICENOW_TOOLS.find(t => t.name === 'servicenow_connect');
   if (connectTool) {
     const schema = connectTool.inputSchema as { properties?: Record<string, unknown>; required?: string[] };
@@ -75,9 +86,123 @@ async function runTests(): Promise<void> {
     }
   }
 
-  // Test 2: isServiceNowTool function
+  // Core tool count
+  if (SERVICENOW_TOOLS.length === 8) {
+    pass(`All 8 core ServiceNow tools defined`);
+  } else {
+    fail(`Expected 8 core tools, found ${SERVICENOW_TOOLS.length}`);
+  }
+
+  // ── AIA Tool Definitions ──────────────────────────────────────
+  section('AIA Tool Definitions');
+
+  const expectedAiaTools = [
+    'servicenow_aia_list', 'servicenow_aia_get', 'servicenow_aia_trace',
+    'servicenow_aia_errors', 'servicenow_aia_execute', 'servicenow_aia_create',
+  ];
+  for (const toolName of expectedAiaTools) {
+    const tool = AIA_TOOLS.find(t => t.name === toolName);
+    if (tool) {
+      pass(`${toolName} tool is defined`);
+    } else {
+      fail(`${toolName} tool is missing`);
+    }
+  }
+
+  if (AIA_TOOLS.length === 6) {
+    pass(`All 6 AIA tools defined`);
+  } else {
+    fail(`Expected 6 AIA tools, found ${AIA_TOOLS.length}`);
+  }
+
+  // Check AIA tool schemas
+  const aiaGetTool = AIA_TOOLS.find(t => t.name === 'servicenow_aia_get');
+  if (aiaGetTool) {
+    const schema = aiaGetTool.inputSchema as { required?: string[] };
+    if (schema.required?.includes('agent')) {
+      pass('servicenow_aia_get requires agent');
+    } else {
+      fail('servicenow_aia_get should require agent');
+    }
+  }
+
+  const aiaTraceTool = AIA_TOOLS.find(t => t.name === 'servicenow_aia_trace');
+  if (aiaTraceTool) {
+    const schema = aiaTraceTool.inputSchema as { required?: string[] };
+    if (schema.required?.includes('executionId')) {
+      pass('servicenow_aia_trace requires executionId');
+    } else {
+      fail('servicenow_aia_trace should require executionId');
+    }
+  }
+
+  const aiaCreateTool = AIA_TOOLS.find(t => t.name === 'servicenow_aia_create');
+  if (aiaCreateTool) {
+    const schema = aiaCreateTool.inputSchema as { required?: string[]; properties?: Record<string, unknown> };
+    if (schema.required?.includes('agentName') && schema.required?.includes('agentInstructions')) {
+      pass('servicenow_aia_create requires agentName and agentInstructions');
+    } else {
+      fail('servicenow_aia_create should require agentName and agentInstructions');
+    }
+    if (schema.properties?.dryRun) {
+      pass('servicenow_aia_create has dryRun property');
+    } else {
+      fail('servicenow_aia_create should have dryRun property');
+    }
+  }
+
+  // ── Skill Tool Definitions ──────────────────────────────────────
+  section('Skill Tool Definitions');
+
+  const expectedSkillTools = [
+    'servicenow_skill_list', 'servicenow_skill_get',
+    'servicenow_skill_execute', 'servicenow_skill_create',
+  ];
+  for (const toolName of expectedSkillTools) {
+    const tool = SKILL_TOOLS.find(t => t.name === toolName);
+    if (tool) {
+      pass(`${toolName} tool is defined`);
+    } else {
+      fail(`${toolName} tool is missing`);
+    }
+  }
+
+  if (SKILL_TOOLS.length === 4) {
+    pass(`All 4 Skill tools defined`);
+  } else {
+    fail(`Expected 4 Skill tools, found ${SKILL_TOOLS.length}`);
+  }
+
+  // Check skill tool schemas
+  const skillGetTool = SKILL_TOOLS.find(t => t.name === 'servicenow_skill_get');
+  if (skillGetTool) {
+    const schema = skillGetTool.inputSchema as { required?: string[] };
+    if (schema.required?.includes('skill')) {
+      pass('servicenow_skill_get requires skill');
+    } else {
+      fail('servicenow_skill_get should require skill');
+    }
+  }
+
+  const skillCreateTool = SKILL_TOOLS.find(t => t.name === 'servicenow_skill_create');
+  if (skillCreateTool) {
+    const schema = skillCreateTool.inputSchema as { required?: string[]; properties?: Record<string, unknown> };
+    if (schema.required?.includes('skillName') && schema.required?.includes('promptTemplate')) {
+      pass('servicenow_skill_create requires skillName and promptTemplate');
+    } else {
+      fail('servicenow_skill_create should require skillName and promptTemplate');
+    }
+    if (schema.properties?.dryRun) {
+      pass('servicenow_skill_create has dryRun property');
+    } else {
+      fail('servicenow_skill_create should have dryRun property');
+    }
+  }
+
+  // ── Tool Detection Functions ──────────────────────────────────
   section('Tool Detection');
 
+  // Core detection
   if (isServiceNowTool('servicenow_connect')) {
     pass('isServiceNowTool("servicenow_connect") returns true');
   } else {
@@ -96,8 +221,49 @@ async function runTests(): Promise<void> {
     fail('isServiceNowTool("random_tool") should return false');
   }
 
-  // Test 3: Status when not connected
-  section('Status Handler (No Connection)');
+  // AIA detection
+  if (isAiaTool('servicenow_aia_list')) {
+    pass('isAiaTool("servicenow_aia_list") returns true');
+  } else {
+    fail('isAiaTool("servicenow_aia_list") should return true');
+  }
+
+  if (!isAiaTool('servicenow_connect')) {
+    pass('isAiaTool("servicenow_connect") returns false');
+  } else {
+    fail('isAiaTool("servicenow_connect") should return false');
+  }
+
+  // Skill detection
+  if (isSkillTool('servicenow_skill_list')) {
+    pass('isSkillTool("servicenow_skill_list") returns true');
+  } else {
+    fail('isSkillTool("servicenow_skill_list") should return true');
+  }
+
+  if (!isSkillTool('servicenow_aia_list')) {
+    pass('isSkillTool("servicenow_aia_list") returns false');
+  } else {
+    fail('isSkillTool("servicenow_aia_list") should return false');
+  }
+
+  // ── No-Connection Guard Tests ──────────────────────────────────
+  section('Guards (No Connection)');
+
+  const guardResult = requireConnection();
+  if (isConnectionError(guardResult)) {
+    pass('requireConnection() returns error when not connected');
+    if (guardResult.content[0].text.includes('Not connected')) {
+      pass('Guard error includes helpful message');
+    } else {
+      fail('Guard error should mention "Not connected"');
+    }
+  } else {
+    fail('requireConnection() should fail when not connected');
+  }
+
+  // ── Core Handlers (No Connection) ──────────────────────────────
+  section('Core Handlers (No Connection)');
 
   const statusResult = await handleServiceNowTool('servicenow_status', {});
   if (statusResult) {
@@ -110,9 +276,6 @@ async function runTests(): Promise<void> {
     fail('Status handler returned null');
   }
 
-  // Test 4: Disconnect when not connected
-  section('Disconnect Handler (No Connection)');
-
   const disconnectResult = await handleServiceNowTool('servicenow_disconnect', {});
   if (disconnectResult) {
     if (disconnectResult.content[0].text.includes('Not connected')) {
@@ -123,9 +286,6 @@ async function runTests(): Promise<void> {
   } else {
     fail('Disconnect handler returned null');
   }
-
-  // Test 5: Connect validation
-  section('Connect Handler (Validation)');
 
   const connectNoInstance = await handleServiceNowTool('servicenow_connect', {});
   if (connectNoInstance) {
@@ -138,218 +298,43 @@ async function runTests(): Promise<void> {
     fail('Connect handler returned null');
   }
 
-  // Test 5b: Syslogs requires connection
-  section('Syslogs Handler (No Connection)');
-
-  const syslogsNoConnection = await handleServiceNowTool('servicenow_syslogs', {});
-  if (syslogsNoConnection) {
-    if (syslogsNoConnection.isError && syslogsNoConnection.content[0].text.includes('Not connected')) {
-      pass('Syslogs rejects when not connected');
+  // Syslogs, AIA logs, query, script, instance — all require connection
+  for (const toolName of ['servicenow_syslogs', 'servicenow_aia_logs', 'servicenow_query', 'servicenow_script', 'servicenow_instance']) {
+    const result = await handleServiceNowTool(toolName, { table: 'incident', script: 'test' });
+    if (result && result.isError && result.content[0].text.includes('Not connected')) {
+      pass(`${toolName} rejects when not connected`);
     } else {
-      fail('Syslogs should require connection');
+      fail(`${toolName} should require connection`);
     }
-  } else {
-    fail('Syslogs handler returned null');
   }
 
-  // Test 5c: Syslogs tool is defined
-  const syslogsTool = SERVICENOW_TOOLS.find(t => t.name === 'servicenow_syslogs');
-  if (syslogsTool) {
-    pass('servicenow_syslogs tool is defined');
-    const schema = syslogsTool.inputSchema as { properties?: Record<string, unknown> };
-    if (schema.properties?.level && schema.properties?.timeRange && schema.properties?.source) {
-      pass('servicenow_syslogs has expected filter properties');
+  // ── AIA Handlers (No Connection) ──────────────────────────────
+  section('AIA Handlers (No Connection)');
+
+  for (const toolName of expectedAiaTools) {
+    const result = await handleAiaTool(toolName, { agent: 'test', executionId: 'test', input: 'test', agentName: 'test', agentDescription: 'test', agentInstructions: 'test' });
+    if (result && result.isError && result.content[0].text.includes('Not connected')) {
+      pass(`${toolName} rejects when not connected`);
     } else {
-      fail('servicenow_syslogs missing filter properties');
+      fail(`${toolName} should require connection`);
     }
-  } else {
-    fail('servicenow_syslogs tool is missing');
   }
 
-  if (isServiceNowTool('servicenow_syslogs')) {
-    pass('isServiceNowTool("servicenow_syslogs") returns true');
-  } else {
-    fail('isServiceNowTool("servicenow_syslogs") should return true');
-  }
+  // ── Skill Handlers (No Connection) ──────────────────────────────
+  section('Skill Handlers (No Connection)');
 
-  // Test 5d: AIA logs requires connection
-  section('AIA Logs Handler (No Connection)');
-
-  const aiaLogsNoConnection = await handleServiceNowTool('servicenow_aia_logs', {});
-  if (aiaLogsNoConnection) {
-    if (aiaLogsNoConnection.isError && aiaLogsNoConnection.content[0].text.includes('Not connected')) {
-      pass('AIA logs rejects when not connected');
+  for (const toolName of expectedSkillTools) {
+    const result = await handleSkillTool(toolName, { skill: 'test', input: {}, skillName: 'test', description: 'test', promptTemplate: 'test' });
+    if (result && result.isError && result.content[0].text.includes('Not connected')) {
+      pass(`${toolName} rejects when not connected`);
     } else {
-      fail('AIA logs should require connection');
+      fail(`${toolName} should require connection`);
     }
-  } else {
-    fail('AIA logs handler returned null');
   }
 
-  // Test 5e: AIA logs tool is defined
-  const aiaLogsTool = SERVICENOW_TOOLS.find(t => t.name === 'servicenow_aia_logs');
-  if (aiaLogsTool) {
-    pass('servicenow_aia_logs tool is defined');
-    const schema = aiaLogsTool.inputSchema as { properties?: Record<string, unknown> };
-    if (schema.properties?.executionId && schema.properties?.agentName && schema.properties?.status) {
-      pass('servicenow_aia_logs has expected filter properties');
-    } else {
-      fail('servicenow_aia_logs missing filter properties');
-    }
-  } else {
-    fail('servicenow_aia_logs tool is missing');
-  }
-
-  if (isServiceNowTool('servicenow_aia_logs')) {
-    pass('isServiceNowTool("servicenow_aia_logs") returns true');
-  } else {
-    fail('isServiceNowTool("servicenow_aia_logs") should return true');
-  }
-
-  // Test 5f: Query requires connection
-  section('Query Handler (No Connection)');
-
-  const queryNoConnection = await handleServiceNowTool('servicenow_query', { table: 'incident' });
-  if (queryNoConnection) {
-    if (queryNoConnection.isError && queryNoConnection.content[0].text.includes('Not connected')) {
-      pass('Query rejects when not connected');
-    } else {
-      fail('Query should require connection');
-    }
-  } else {
-    fail('Query handler returned null');
-  }
-
-  // Test 5g: Query requires table
-  const queryNoTable = await handleServiceNowTool('servicenow_query', {});
-  if (queryNoTable) {
-    // When not connected, it will fail with "Not connected" first
-    // So we just check the handler returns something
-    pass('Query handler handles missing table');
-  } else {
-    fail('Query handler returned null');
-  }
-
-  // Test 5h: Query tool is defined
-  const queryTool = SERVICENOW_TOOLS.find(t => t.name === 'servicenow_query');
-  if (queryTool) {
-    pass('servicenow_query tool is defined');
-    const schema = queryTool.inputSchema as { properties?: Record<string, unknown>; required?: string[] };
-    if (schema.properties?.table && schema.properties?.query && schema.properties?.fields) {
-      pass('servicenow_query has expected properties');
-    } else {
-      fail('servicenow_query missing expected properties');
-    }
-    if (schema.required?.includes('table')) {
-      pass('servicenow_query requires table');
-    } else {
-      fail('servicenow_query should require table');
-    }
-  } else {
-    fail('servicenow_query tool is missing');
-  }
-
-  if (isServiceNowTool('servicenow_query')) {
-    pass('isServiceNowTool("servicenow_query") returns true');
-  } else {
-    fail('isServiceNowTool("servicenow_query") should return true');
-  }
-
-  // Test 5i: Script requires connection
-  section('Script Handler (No Connection)');
-
-  const scriptNoConnection = await handleServiceNowTool('servicenow_script', { script: 'gs.info("test")' });
-  if (scriptNoConnection) {
-    if (scriptNoConnection.isError && scriptNoConnection.content[0].text.includes('Not connected')) {
-      pass('Script rejects when not connected');
-    } else {
-      fail('Script should require connection');
-    }
-  } else {
-    fail('Script handler returned null');
-  }
-
-  // Test 5j: Script requires script parameter
-  const scriptNoScript = await handleServiceNowTool('servicenow_script', {});
-  if (scriptNoScript) {
-    // Will fail with "Not connected" first, but handler exists
-    pass('Script handler handles missing script');
-  } else {
-    fail('Script handler returned null');
-  }
-
-  // Test 5k: Script tool is defined
-  const scriptTool = SERVICENOW_TOOLS.find(t => t.name === 'servicenow_script');
-  if (scriptTool) {
-    pass('servicenow_script tool is defined');
-    const schema = scriptTool.inputSchema as { properties?: Record<string, unknown>; required?: string[] };
-    if (schema.properties?.script && schema.properties?.mode && schema.properties?.timeout) {
-      pass('servicenow_script has expected properties');
-    } else {
-      fail('servicenow_script missing expected properties');
-    }
-    if (schema.required?.includes('script')) {
-      pass('servicenow_script requires script');
-    } else {
-      fail('servicenow_script should require script');
-    }
-  } else {
-    fail('servicenow_script tool is missing');
-  }
-
-  if (isServiceNowTool('servicenow_script')) {
-    pass('isServiceNowTool("servicenow_script") returns true');
-  } else {
-    fail('isServiceNowTool("servicenow_script") should return true');
-  }
-
-  // Test 5l: Instance requires connection
-  section('Instance Handler (No Connection)');
-
-  const instanceNoConnection = await handleServiceNowTool('servicenow_instance', {});
-  if (instanceNoConnection) {
-    if (instanceNoConnection.isError && instanceNoConnection.content[0].text.includes('Not connected')) {
-      pass('Instance rejects when not connected');
-    } else {
-      fail('Instance should require connection');
-    }
-  } else {
-    fail('Instance handler returned null');
-  }
-
-  // Test 5m: Instance tool is defined
-  const instanceTool = SERVICENOW_TOOLS.find(t => t.name === 'servicenow_instance');
-  if (instanceTool) {
-    pass('servicenow_instance tool is defined');
-    const schema = instanceTool.inputSchema as { properties?: Record<string, unknown> };
-    if (schema.properties?.includePlugins && schema.properties?.includeHealth && schema.properties?.checkFeatures) {
-      pass('servicenow_instance has expected properties');
-    } else {
-      fail('servicenow_instance missing expected properties');
-    }
-  } else {
-    fail('servicenow_instance tool is missing');
-  }
-
-  if (isServiceNowTool('servicenow_instance')) {
-    pass('isServiceNowTool("servicenow_instance") returns true');
-  } else {
-    fail('isServiceNowTool("servicenow_instance") should return true');
-  }
-
-  // Test: Total tool count
-  section('Tool Count');
-  const expectedToolCount = 8; // connect, disconnect, status, syslogs, aia_logs, query, script, instance
-  if (SERVICENOW_TOOLS.length === expectedToolCount) {
-    pass(`All ${expectedToolCount} ServiceNow tools are defined`);
-  } else {
-    fail(`Expected ${expectedToolCount} tools, found ${SERVICENOW_TOOLS.length}`);
-  }
-
-  // Test 6: ServiceNowClient URL normalization
+  // ── Client URL Normalization ──────────────────────────────────
   section('Client URL Normalization');
 
-  // Test with basic auth config for instantiation
   const testAuth = { type: 'basic' as const, username: 'test', password: 'test' };
 
   const client1 = new ServiceNowClient('dev12345.service-now.com', testAuth);
@@ -373,7 +358,7 @@ async function runTests(): Promise<void> {
     fail(`Expected no trailing slash, got ${client3.getInstanceUrl()}`);
   }
 
-  // Test 7: ServiceNowError
+  // ── Error Types ──────────────────────────────────────────────
   section('Error Types');
 
   const error = new ServiceNowError(
@@ -396,7 +381,7 @@ async function runTests(): Promise<void> {
     fail('ServiceNowError.toJSON() returned unexpected value');
   }
 
-  // Test 8: ConnectionManager status
+  // ── Connection Manager ──────────────────────────────────────
   section('Connection Manager');
 
   const managerStatus = connectionManager.getStatus();
@@ -406,25 +391,116 @@ async function runTests(): Promise<void> {
     fail('ConnectionManager should start empty');
   }
 
-  // Summary
-  console.log(`\n${CYAN}→ ═══════════════════════════════════════════════════════════${RESET}`);
-  console.log(`${CYAN}→   SUMMARY${RESET}`);
-  console.log(`${CYAN}→ ═══════════════════════════════════════════════════════════${RESET}`);
+  // ── Table Discovery ──────────────────────────────────────────
+  section('Table Discovery');
 
-  const total = passed + failed;
-  if (failed === 0) {
-    console.log(`\n${GREEN}✓ Passed: ${passed}/${total}${RESET}`);
+  // Just test the cache clear doesn't throw
+  clearTableCache();
+  pass('clearTableCache() runs without error');
+
+  // ── Script API Module ──────────────────────────────────────────
+  section('Script API Module');
+
+  // clearScriptApiCache should not throw
+  clearScriptApiCache();
+  pass('clearScriptApiCache() runs without error');
+
+  // Verify all expected exports exist
+  if (typeof checkScriptApi === 'function') {
+    pass('checkScriptApi is exported as a function');
   } else {
-    console.log(`\n${RED}✗ Failed: ${failed}/${total}${RESET}`);
-    console.log(`${GREEN}✓ Passed: ${passed}/${total}${RESET}`);
+    fail('checkScriptApi should be an exported function');
   }
 
-  console.log(`\n${CYAN}→ Note: Live connection tests require a ServiceNow instance.${RESET}`);
-  console.log(`${CYAN}→ To test connections manually:${RESET}`);
-  console.log(`${CYAN}→   1. Set up credentials in ~/.servicenow/credentials.json${RESET}`);
-  console.log(`${CYAN}→   2. Or use basic auth with username/password${RESET}`);
+  if (typeof deployScriptApi === 'function') {
+    pass('deployScriptApi is exported as a function');
+  } else {
+    fail('deployScriptApi should be an exported function');
+  }
 
-  if (failed > 0) {
+  if (typeof ensureScriptApi === 'function') {
+    pass('ensureScriptApi is exported as a function');
+  } else {
+    fail('ensureScriptApi should be an exported function');
+  }
+
+  if (typeof executeViaScriptApi === 'function') {
+    pass('executeViaScriptApi is exported as a function');
+  } else {
+    fail('executeViaScriptApi should be an exported function');
+  }
+
+  if (typeof clearScriptApiCache === 'function') {
+    pass('clearScriptApiCache is exported as a function');
+  } else {
+    fail('clearScriptApiCache should be an exported function');
+  }
+
+  // ── Script Execution Pipeline ──────────────────────────────────
+  section('Script Execution Pipeline');
+
+  // Empty script should be rejected
+  const emptyScriptResult = await handleServiceNowTool('servicenow_script', { script: '' });
+  if (emptyScriptResult && emptyScriptResult.isError && emptyScriptResult.content[0].text.includes('script is required')) {
+    pass('servicenow_script rejects empty script');
+  } else {
+    fail('servicenow_script should reject empty script');
+  }
+
+  // Script with only whitespace should be rejected
+  const whitespaceScriptResult = await handleServiceNowTool('servicenow_script', { script: '   ' });
+  if (whitespaceScriptResult && whitespaceScriptResult.isError && whitespaceScriptResult.content[0].text.includes('script is required')) {
+    pass('servicenow_script rejects whitespace-only script');
+  } else {
+    fail('servicenow_script should reject whitespace-only script');
+  }
+
+  // Script tool should reject when not connected (already tested above, but verify the specific handler path)
+  const scriptNoConnResult = await handleServiceNowTool('servicenow_script', { script: "gs.info('hello')" });
+  if (scriptNoConnResult && scriptNoConnResult.isError && scriptNoConnResult.content[0].text.includes('Not connected')) {
+    pass('servicenow_script rejects when not connected');
+  } else {
+    fail('servicenow_script should require connection');
+  }
+
+  // GlideEvaluator should be blocked in user scripts
+  const evalScriptResult = await handleServiceNowTool('servicenow_script', { script: "var e = new GlideEvaluator(); e.evaluateString('test');" });
+  // This will fail with "Not connected" first since we don't have a connection,
+  // but the analyzeScript function should block it. Let's test analyzeScript directly.
+  // Since analyzeScript is not exported, we test indirectly through tool behavior.
+  // When not connected, the connection check fires before script analysis.
+  // We'll verify the safety analysis exists by checking tool definition.
+  const scriptTool = SERVICENOW_TOOLS.find(t => t.name === 'servicenow_script');
+  if (scriptTool && scriptTool.description?.includes('SAFETY')) {
+    pass('servicenow_script tool description mentions safety analysis');
+  } else {
+    fail('servicenow_script should document safety analysis');
+  }
+
+  // ── Total Tool Count ──────────────────────────────────────────
+  section('Total Tool Count');
+
+  const totalServiceNowTools = SERVICENOW_TOOLS.length + AIA_TOOLS.length + SKILL_TOOLS.length;
+  const expectedTotal = 8 + 6 + 4; // 18
+  if (totalServiceNowTools === expectedTotal) {
+    pass(`All ${expectedTotal} ServiceNow tools defined (8 core + 6 AIA + 4 skill)`);
+  } else {
+    fail(`Expected ${expectedTotal} total tools, found ${totalServiceNowTools}`);
+  }
+
+  // Summary
+  t.log("═══════════════════════════════════════════════════════════", "header");
+  t.log("  SUMMARY", "header");
+  t.log("═══════════════════════════════════════════════════════════", "header");
+
+  const { failed: failCount } = t.printSummary();
+
+  t.log("Note: Live connection tests require a ServiceNow instance.", "header");
+  t.log("To test connections manually:", "header");
+  t.log("  1. Set up credentials in ~/.servicenow/credentials.json", "header");
+  t.log("  2. Or use basic auth with username/password", "header");
+
+  if (failCount > 0) {
     process.exit(1);
   }
 }

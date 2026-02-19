@@ -1,0 +1,2025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Team & Content Test Script</title>
+    <style>
+        :root {
+            --primary: #7c3aed;
+            --primary-dark: #6d28d9;
+            --success: #059669;
+            --success-light: #d1fae5;
+            --fail: #dc2626;
+            --fail-light: #fee2e2;
+            --skip: #f59e0b;
+            --skip-light: #fef3c7;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --code-bg: #1e293b;
+            --code-text: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        .meta-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meta-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .meta-value {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .progress-bar {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+            position: sticky;
+            top: 1rem;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .progress-title {
+            font-weight: 600;
+        }
+
+        .progress-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .stat-pass { color: var(--success); }
+        .stat-fail { color: var(--fail); }
+        .stat-skip { color: var(--skip); }
+
+        .progress-track {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .progress-fill-pass {
+            background: var(--success);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill-fail {
+            background: var(--fail);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill-skip {
+            background: var(--skip);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 8px;
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            margin: 1rem 0 0.5rem;
+            color: var(--primary-dark);
+        }
+
+        .test-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+            transition: border-color 0.2s;
+        }
+
+        .test-card.pass {
+            border-color: var(--success);
+            background: linear-gradient(to right, var(--success-light), var(--card-bg) 50%);
+        }
+
+        .test-card.fail {
+            border-color: var(--fail);
+            background: linear-gradient(to right, var(--fail-light), var(--card-bg) 50%);
+        }
+
+        .test-card.skip {
+            border-color: var(--skip);
+            background: linear-gradient(to right, var(--skip-light), var(--card-bg) 50%);
+        }
+
+        .test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .test-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--text);
+        }
+
+        .test-id {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .result-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .result-btn {
+            padding: 0.4rem 0.8rem;
+            border: 2px solid;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .result-btn.pass-btn {
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .result-btn.pass-btn:hover,
+        .result-btn.pass-btn.active {
+            background: var(--success);
+            color: white;
+        }
+
+        .result-btn.fail-btn {
+            border-color: var(--fail);
+            color: var(--fail);
+        }
+
+        .result-btn.fail-btn:hover,
+        .result-btn.fail-btn.active {
+            background: var(--fail);
+            color: white;
+        }
+
+        .result-btn.skip-btn {
+            border-color: var(--skip);
+            color: var(--skip);
+        }
+
+        .result-btn.skip-btn:hover,
+        .result-btn.skip-btn.active {
+            background: var(--skip);
+            color: white;
+        }
+
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0.75rem 0;
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        code {
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            background: #f1f5f9;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .expected {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 0.75rem 0;
+        }
+
+        .expected-label {
+            font-weight: 600;
+            color: var(--success);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .setup-card {
+            background: #fefce8;
+            border: 1px solid #fef08a;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .note {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-size: 0.95rem;
+        }
+
+        .toc {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .toc h3 {
+            margin-top: 0;
+            margin-bottom: 0.75rem;
+        }
+
+        .toc ol {
+            padding-left: 1.5rem;
+            margin: 0;
+        }
+
+        .toc li {
+            margin: 0.4rem 0;
+        }
+
+        .toc a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        .toc .test-count {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .tester-info {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .tester-info h3 {
+            margin-top: 0;
+        }
+
+        .tester-field {
+            margin: 0.75rem 0;
+        }
+
+        .tester-field label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .tester-field input,
+        .tester-field textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .tester-field textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        ul {
+            padding-left: 1.25rem;
+            margin: 0.5rem 0;
+        }
+
+        li {
+            margin: 0.25rem 0;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+                background: white;
+            }
+
+            .progress-bar {
+                position: static;
+                box-shadow: none;
+            }
+
+            .test-card {
+                break-inside: avoid;
+                box-shadow: none;
+            }
+
+            .result-btn {
+                border-width: 1px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.75rem;
+            }
+
+            .test-header {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .result-buttons {
+                width: 100%;
+            }
+
+            .result-btn {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Agent Team & Content Test Script</h1>
+    <p class="subtitle">Validates Sprint 1 (context + skills) and Sprint 2 (sub-agents) using an Incident Triage Agent use case</p>
+
+    <div class="meta-info">
+        <div class="meta-item">
+            <span class="meta-label">Test Duration</span>
+            <span class="meta-value">45-60 minutes</span>
+        </div>
+        <div class="meta-item">
+            <span class="meta-label">Total Tests</span>
+            <span class="meta-value">55 across 7 phases</span>
+        </div>
+        <div class="meta-item">
+            <span class="meta-label">Prerequisites</span>
+            <span class="meta-value">foundry-golden/ populated</span>
+        </div>
+        <div class="meta-item">
+            <span class="meta-label">Use Case</span>
+            <span class="meta-value">Incident Triage Agent</span>
+        </div>
+    </div>
+
+    <div class="toc">
+        <h3>Table of Contents</h3>
+        <ol>
+            <li><a href="#phase-1">Phase 1: Context File Quality</a> <span class="test-count">(8 tests)</span></li>
+            <li><a href="#phase-2">Phase 2: Skill Quality</a> <span class="test-count">(8 tests)</span></li>
+            <li><a href="#phase-3">Phase 3: Sub-Agent Configuration</a> <span class="test-count">(12 tests)</span></li>
+            <li><a href="#phase-4">Phase 4: Cross-Reference Validation</a> <span class="test-count">(6 tests)</span></li>
+            <li><a href="#phase-5">Phase 5: Incident Triage End-to-End Walkthrough</a> <span class="test-count">(12 tests)</span></li>
+            <li><a href="#phase-6">Phase 6: Safety & Security Validation</a> <span class="test-count">(5 tests)</span></li>
+            <li><a href="#phase-7">Phase 7: Documentation Completeness</a> <span class="test-count">(4 tests)</span></li>
+        </ol>
+    </div>
+
+    <div class="progress-bar">
+        <div class="progress-header">
+            <span class="progress-title">Test Progress</span>
+            <div class="progress-stats">
+                <span class="stat-pass">Pass: <span id="pass-count">0</span></span>
+                <span class="stat-fail">Fail: <span id="fail-count">0</span></span>
+                <span class="stat-skip">Skip: <span id="skip-count">0</span></span>
+                <span>of <span id="total-count">55</span></span>
+            </div>
+        </div>
+        <div class="progress-track">
+            <div class="progress-fill-pass" id="progress-pass" style="width: 0%"></div>
+            <div class="progress-fill-fail" id="progress-fail" style="width: 0%"></div>
+            <div class="progress-fill-skip" id="progress-skip" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- PHASE 1: CONTEXT FILE QUALITY (8 tests) -->
+    <!-- ============================================================ -->
+
+    <h2 id="phase-1">Phase 1: Context File Quality (8 tests)</h2>
+
+    <div class="note">
+        <strong>Instructions:</strong> For each test, open the file in your editor and verify the checklist items. Every context file should have proper markdown structure (title, overview blockquote, sections, dividers), actionable content, valid code examples, well-formed tables/diagrams, and a Related Resources section.
+    </div>
+
+    <div class="test-card" data-test="1.1">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.1</span>
+                <div class="test-title">prompt-engineering-patterns.md</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/context/prompt-engineering-patterns.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Has proper markdown structure (title, overview blockquote, sections, dividers)</li>
+                <li>Contains 5 agent type templates (or equivalent prompt pattern categories)</li>
+                <li>Includes strategy-specific patterns (ReAct, Planner, etc.)</li>
+                <li>Code/prompt examples are syntactically valid</li>
+                <li>Related Resources section exists</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.2">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.2</span>
+                <div class="test-title">tool-script-cookbook.md</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/context/tool-script-cookbook.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Has proper markdown structure (title, overview blockquote, sections, dividers)</li>
+                <li>Contains 12 recipes (or comparable number) with complete scripts</li>
+                <li>Each recipe includes input/output schemas</li>
+                <li>Scripts use <code>GlideRecordSecure</code> (not <code>GlideRecord</code>)</li>
+                <li>Related Resources section exists</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.3">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.3</span>
+                <div class="test-title">agent-instruction-templates.md</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/context/agent-instruction-templates.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Has proper markdown structure (title, overview blockquote, sections, dividers)</li>
+                <li>Contains 4 strategy templates (ReAct, Planner, etc.)</li>
+                <li>Includes a pitfalls/anti-patterns section</li>
+                <li>Templates include identity, objective, tool usage, rules, output format sections</li>
+                <li>Related Resources section exists</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.4">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.4</span>
+                <div class="test-title">iterative-development-workflow.md</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/context/iterative-development-workflow.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Has proper markdown structure (title, overview blockquote, sections, dividers)</li>
+                <li>Describes a 6-step loop (or equivalent iterative cycle)</li>
+                <li>Maps steps to MCP tools (e.g., <code>aia_create</code>, <code>aia_execute</code>, <code>aia_trace</code>)</li>
+                <li>Includes decision points for when to iterate vs. ship</li>
+                <li>Related Resources section exists</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.5">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.5</span>
+                <div class="test-title">flow-designer-for-ai.md</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/context/flow-designer-for-ai.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Has proper markdown structure (title, overview blockquote, sections, dividers)</li>
+                <li>Covers trigger types (record, scheduled, inbound email, etc.)</li>
+                <li>Describes flow-to-agent integration patterns</li>
+                <li>Includes examples or diagrams</li>
+                <li>Related Resources section exists</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.6">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.6</span>
+                <div class="test-title">customer-interaction-patterns.md</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/context/customer-interaction-patterns.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Has proper markdown structure (title, overview blockquote, sections, dividers)</li>
+                <li>Covers 5 channels (or equivalent: portal, VA, email, Slack, Teams)</li>
+                <li>Includes a channel selection guide or decision matrix</li>
+                <li>Provides integration patterns per channel</li>
+                <li>Related Resources section exists</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.7">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.7</span>
+                <div class="test-title">multi-agent-handoff-patterns.md</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/context/multi-agent-handoff-patterns.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Has proper markdown structure (title, overview blockquote, sections, dividers)</li>
+                <li>Describes context sharing between agents</li>
+                <li>Includes recursive/loop controls (max depth, cycle detection)</li>
+                <li>Covers handoff protocols and state management</li>
+                <li>Related Resources section exists</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="1.8">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 1.8</span>
+                <div class="test-title">data-kit-retrieval-patterns.md</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/context/data-kit-retrieval-patterns.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Has proper markdown structure (title, overview blockquote, sections, dividers)</li>
+                <li>Describes the RAG pipeline (retrieval-augmented generation)</li>
+                <li>Includes 4 integration patterns (or equivalent data retrieval approaches)</li>
+                <li>Covers Data Kit configuration and usage</li>
+                <li>Related Resources section exists</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- PHASE 2: SKILL QUALITY (8 tests) -->
+    <!-- ============================================================ -->
+
+    <h2 id="phase-2">Phase 2: Skill Quality (8 tests)</h2>
+
+    <div class="note">
+        <strong>Instructions:</strong> For each skill, run two tests: (1) verify SKILL.md structure has workflow steps, output format, and examples; (2) mentally apply the skill to the <strong>Incident Triage Agent</strong> use case and verify the output template makes sense.
+    </div>
+
+    <div class="test-card" data-test="2.1">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 2.1</span>
+                <div class="test-title">solution-design SKILL.md &mdash; Structure</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/skills/solution-design/SKILL.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Has defined workflow steps (numbered or phased)</li>
+                <li>Includes output format/template section</li>
+                <li>Has examples or sample outputs</li>
+                <li>Describes when to use this skill vs. others</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="2.2">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 2.2</span>
+                <div class="test-title">solution-design &mdash; Incident Triage Application</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Scenario:</strong> Apply the solution-design skill to: "Build an agent that triages P1 incidents automatically"</p>
+        <div class="expected">
+            <span class="expected-label">Verify the output template would produce:</span>
+            <ul>
+                <li>Intake questions about scope, data sources, and triggers</li>
+                <li>A solution spec identifying 1 agent, 2-3 tools, and a recommended strategy</li>
+                <li>Clear architecture decisions (single vs. multi-agent, ReAct vs. Planner)</li>
+                <li>Identification of required ServiceNow tables (incident, cmdb_ci, etc.)</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="2.3">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 2.3</span>
+                <div class="test-title">tool-script-writer SKILL.md &mdash; Structure</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/skills/tool-script-writer/SKILL.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Has defined workflow steps for writing tool scripts</li>
+                <li>Includes output format with script + input/output schema</li>
+                <li>References <code>tool-script-rules.md</code> or <code>tool-script-cookbook.md</code></li>
+                <li>Has examples or sample tool specifications</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="2.4">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 2.4</span>
+                <div class="test-title">tool-script-writer &mdash; Incident Triage Application</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Scenario:</strong> Apply the skill to write a <code>get_incident_details</code> tool spec.</p>
+        <div class="expected">
+            <span class="expected-label">Verify the output template would produce:</span>
+            <ul>
+                <li>Input schema with <code>incident_number</code> (mandatory field)</li>
+                <li>Output schema with <code>status</code>, <code>data</code>, <code>error</code> fields</li>
+                <li>Script uses <code>GlideRecordSecure</code> and <code>addUserEncodedQuery()</code></li>
+                <li>Includes <code>setLimit()</code> for safety</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="2.5">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 2.5</span>
+                <div class="test-title">agent-prompt-writer SKILL.md &mdash; Structure</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/skills/agent-prompt-writer/SKILL.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Has defined workflow steps for writing agent instructions</li>
+                <li>Includes output format with instruction template sections</li>
+                <li>References <code>agent-instruction-templates.md</code></li>
+                <li>Has examples or sample agent prompts</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="2.6">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 2.6</span>
+                <div class="test-title">agent-prompt-writer &mdash; Incident Triage Application</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Scenario:</strong> Apply the skill to write instructions for an Incident Triage Agent using ReAct strategy.</p>
+        <div class="expected">
+            <span class="expected-label">Verify the output template would produce:</span>
+            <ul>
+                <li>Identity section defining the agent's role</li>
+                <li>Objective section with clear triage goals</li>
+                <li>Tool usage section listing available tools and when to use each</li>
+                <li>Workflow/steps section with ReAct thinking pattern</li>
+                <li>Rules/guardrails section with safety constraints</li>
+                <li>Output format section specifying structured triage results</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="2.7">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 2.7</span>
+                <div class="test-title">iterative-test-fix SKILL.md &mdash; Structure</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/skills/iterative-test-fix/SKILL.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Has defined workflow steps for test-fix iteration</li>
+                <li>Includes a decision tree or diagnostic flowchart</li>
+                <li>References MCP debugging tools (<code>aia_trace</code>, <code>aia_errors</code>)</li>
+                <li>Has examples or sample failure diagnoses</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="2.8">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 2.8</span>
+                <div class="test-title">iterative-test-fix &mdash; Incident Triage Application</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Scenario:</strong> Apply the skill to trace a failure where the Incident Triage Agent returns empty results.</p>
+        <div class="expected">
+            <span class="expected-label">Verify the output template would produce:</span>
+            <ul>
+                <li>Root cause classification (SCRIPT_ERROR, ACL_ERROR, PROMPT_ERROR, etc.)</li>
+                <li>Diagnostic steps checking <code>addUserEncodedQuery()</code> and <code>setLimit()</code></li>
+                <li>Fix recommendations mapped to the correct specialist agent</li>
+                <li>Minimum 3 test cases (happy path, edge case, error case)</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- PHASE 3: SUB-AGENT CONFIGURATION (12 tests) -->
+    <!-- ============================================================ -->
+
+    <h2 id="phase-3">Phase 3: Sub-Agent Configuration (12 tests)</h2>
+
+    <div class="note">
+        <strong>Instructions:</strong> For each sub-agent, run two tests: (1) verify AGENT.md has role, boundaries, workflow, and output format; (2) verify config.json references valid context files, skills, and MCP tools.
+    </div>
+
+    <!-- Solution Architect -->
+    <div class="test-card" data-test="3.1">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 3.1</span>
+                <div class="test-title">solution-architect &mdash; AGENT.md</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/subagents/solution-architect/AGENT.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Defines role as <strong>lead agent</strong> (orchestrator)</li>
+                <li>Has clear boundaries (what it does vs. what it dispatches)</li>
+                <li>Includes a dispatches array or list of specialist agents it can invoke</li>
+                <li>Defines workflow steps and output format</li>
+                <li>Has error handling section</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="3.2">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 3.2</span>
+                <div class="test-title">solution-architect &mdash; config.json</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/subagents/solution-architect/config.json</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>All <code>context</code> references map to existing <code>context/*.md</code> files</li>
+                <li>All <code>skills</code> references map to existing <code>skills/*/SKILL.md</code> files</li>
+                <li>All <code>mcpTools</code> references match actual MCP tool names (e.g., <code>servicenow_query</code>)</li>
+                <li>Has a <code>dispatches</code> array listing all 5 specialist agents</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Tool Builder -->
+    <div class="test-card" data-test="3.3">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 3.3</span>
+                <div class="test-title">tool-builder &mdash; AGENT.md</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/subagents/tool-builder/AGENT.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Defines role as <strong>specialist</strong> for writing tool scripts</li>
+                <li>Specifies loading <code>tool-script-rules</code> context first</li>
+                <li>Has clear boundaries (tools only, not agent config or prompts)</li>
+                <li>Defines workflow and output format</li>
+                <li>Has error handling section</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="3.4">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 3.4</span>
+                <div class="test-title">tool-builder &mdash; config.json</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/subagents/tool-builder/config.json</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>References <code>tool-script-rules</code> and <code>tool-script-cookbook</code> in context</li>
+                <li>References <code>tool-script-writer</code> skill</li>
+                <li>All <code>mcpTools</code> references are valid MCP tool names</li>
+                <li>JSON is well-formed (no trailing commas, valid syntax)</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Skill Designer -->
+    <div class="test-card" data-test="3.5">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 3.5</span>
+                <div class="test-title">skill-designer &mdash; AGENT.md</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/subagents/skill-designer/AGENT.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Defines role as <strong>specialist</strong> for Now Assist skills</li>
+                <li>References <code>skill_create</code> and <code>skill_execute</code> MCP tools</li>
+                <li>Has clear boundaries (skills only, not agents or tools)</li>
+                <li>Defines workflow and output format</li>
+                <li>Has error handling section</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="3.6">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 3.6</span>
+                <div class="test-title">skill-designer &mdash; config.json</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/subagents/skill-designer/config.json</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>References <code>servicenow_skill_create</code> and <code>servicenow_skill_execute</code> in mcpTools</li>
+                <li>All context references map to existing files</li>
+                <li>All skill references map to existing SKILL.md files</li>
+                <li>JSON is well-formed</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Agent Configurator -->
+    <div class="test-card" data-test="3.7">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 3.7</span>
+                <div class="test-title">agent-configurator &mdash; AGENT.md</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/subagents/agent-configurator/AGENT.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Defines role as <strong>specialist</strong> for AI Agent creation</li>
+                <li>References <code>aia_create</code> and <code>aia_execute</code> MCP tools</li>
+                <li>Has clear boundaries (agent config only, not tool scripts or skills)</li>
+                <li>Defines workflow and output format</li>
+                <li>Has error handling section</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="3.8">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 3.8</span>
+                <div class="test-title">agent-configurator &mdash; config.json</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/subagents/agent-configurator/config.json</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>References <code>servicenow_aia_create</code> and <code>servicenow_aia_execute</code> in mcpTools</li>
+                <li>All context references map to existing files</li>
+                <li>All skill references map to existing SKILL.md files</li>
+                <li>JSON is well-formed</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Workflow Orchestrator -->
+    <div class="test-card" data-test="3.9">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 3.9</span>
+                <div class="test-title">workflow-orchestrator &mdash; AGENT.md</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/subagents/workflow-orchestrator/AGENT.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Defines role as <strong>specialist</strong> for triggers and handoffs</li>
+                <li>Covers Flow Designer integration and record triggers</li>
+                <li>Has clear boundaries (workflow/trigger config only)</li>
+                <li>Defines workflow and output format</li>
+                <li>Has error handling section</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="3.10">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 3.10</span>
+                <div class="test-title">workflow-orchestrator &mdash; config.json</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/subagents/workflow-orchestrator/config.json</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>References <code>flow-designer-for-ai</code> and <code>multi-agent-handoff-patterns</code> in context</li>
+                <li>All context references map to existing files</li>
+                <li>All skill references map to existing SKILL.md files</li>
+                <li>JSON is well-formed</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- QA Debugger -->
+    <div class="test-card" data-test="3.11">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 3.11</span>
+                <div class="test-title">qa-debugger &mdash; AGENT.md</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/subagents/qa-debugger/AGENT.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Defines role as <strong>specialist</strong> for testing and debugging</li>
+                <li>Has the most MCP tools of any specialist (7 or more)</li>
+                <li>Has clear boundaries (testing/debugging only, not building)</li>
+                <li>Defines workflow and output format</li>
+                <li>Has error handling section</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="3.12">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 3.12</span>
+                <div class="test-title">qa-debugger &mdash; config.json</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/subagents/qa-debugger/config.json</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Has 7 or more MCP tool references (trace, errors, logs, execute, query, script, syslogs)</li>
+                <li>References <code>iterative-test-fix</code> skill</li>
+                <li>All context references map to existing files</li>
+                <li>JSON is well-formed</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- PHASE 4: CROSS-REFERENCE VALIDATION (6 tests) -->
+    <!-- ============================================================ -->
+
+    <h2 id="phase-4">Phase 4: Cross-Reference Validation (6 tests)</h2>
+
+    <div class="note">
+        <strong>Instructions:</strong> These tests validate that all references across config files are consistent and valid. Open the config.json files side-by-side with the referenced resources.
+    </div>
+
+    <div class="test-card" data-test="4.1">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 4.1</span>
+                <div class="test-title">Context References Resolve</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> For each <code>config.json</code> in <code>subagents/*/</code>, check that every entry in the <code>context</code> array corresponds to an existing file in <code>foundry-golden/context/</code>.</p>
+        <pre><code># List all context references across all config files
+grep -h '"context"' foundry-golden/subagents/*/config.json -A 20 | grep '"'</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Every context reference has a matching <code>.md</code> file in <code>foundry-golden/context/</code></li>
+                <li>No typos or missing files</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="4.2">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 4.2</span>
+                <div class="test-title">Skill References Resolve</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> For each <code>config.json</code> in <code>subagents/*/</code>, check that every entry in the <code>skills</code> array corresponds to an existing <code>SKILL.md</code> in <code>foundry-golden/skills/</code>.</p>
+        <pre><code># List all skill references across all config files
+grep -h '"skills"' foundry-golden/subagents/*/config.json -A 10 | grep '"'</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Every skill reference has a matching directory with <code>SKILL.md</code> in <code>foundry-golden/skills/</code></li>
+                <li>No typos or missing skills</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="4.3">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 4.3</span>
+                <div class="test-title">MCP Tool References Valid</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> For each <code>config.json</code> in <code>subagents/*/</code>, verify that every entry in <code>mcpTools</code> matches an actual Foundry MCP tool name.</p>
+        <p><strong>Valid MCP tool names:</strong></p>
+        <pre><code>servicenow_connect, servicenow_disconnect, servicenow_status,
+servicenow_syslogs, servicenow_query, servicenow_script,
+servicenow_instance, servicenow_aia_list, servicenow_aia_get,
+servicenow_aia_create, servicenow_aia_execute, servicenow_aia_trace,
+servicenow_aia_errors, servicenow_aia_logs,
+servicenow_skill_list, servicenow_skill_get,
+servicenow_skill_create, servicenow_skill_execute,
+foundry_init, foundry_list, foundry_add, foundry_sync,
+foundry_search, foundry_info, foundry_new, foundry_validate,
+foundry_promote, foundry_external, foundry_version, foundry_templates</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Every <code>mcpTools</code> entry is in the valid list above</li>
+                <li>No invented or misspelled tool names</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="4.4">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 4.4</span>
+                <div class="test-title">Agent Boundaries Don't Overlap</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> Review the role/boundaries section of each AGENT.md. Verify no two specialist agents claim the same primary responsibility.</p>
+        <div class="expected">
+            <span class="expected-label">Expected non-overlapping responsibilities:</span>
+            <ul>
+                <li><strong>Solution Architect:</strong> Requirements gathering, architecture decisions, dispatching</li>
+                <li><strong>Tool Builder:</strong> Writing tool scripts and schemas</li>
+                <li><strong>Skill Designer:</strong> Creating Now Assist skills</li>
+                <li><strong>Agent Configurator:</strong> Creating AI Agents, writing instructions</li>
+                <li><strong>Workflow Orchestrator:</strong> Triggers, flows, multi-agent handoffs</li>
+                <li><strong>QA Debugger:</strong> Testing, tracing, error diagnosis</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="4.5">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 4.5</span>
+                <div class="test-title">Solution Architect Dispatches All Specialists</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> Open <code>foundry-golden/subagents/solution-architect/config.json</code> and verify the dispatches array.</p>
+        <div class="expected">
+            <span class="expected-label">Verify dispatches array includes all 5 specialists:</span>
+            <ul>
+                <li><code>tool-builder</code></li>
+                <li><code>skill-designer</code></li>
+                <li><code>agent-configurator</code></li>
+                <li><code>workflow-orchestrator</code></li>
+                <li><code>qa-debugger</code></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="4.6">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 4.6</span>
+                <div class="test-title">Shared Context Consistency</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> Identify context files referenced by multiple agents. Verify they provide consistent guidance (no contradictory instructions).</p>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Commonly shared context (e.g., <code>security-patterns</code>, <code>agentic-patterns</code>) gives consistent advice</li>
+                <li>No context file contradicts another on the same topic</li>
+                <li>Agents referencing the same context would not receive conflicting instructions</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- PHASE 5: INCIDENT TRIAGE END-TO-END (12 tests) -->
+    <!-- ============================================================ -->
+
+    <h2 id="phase-5">Phase 5: Incident Triage End-to-End Walkthrough (12 tests)</h2>
+
+    <div class="note">
+        <strong>Use Case:</strong> "Build an agent that triages P1 incidents automatically." Walk through what each agent would produce at each step.
+    </div>
+
+    <div class="test-card" data-test="5.1">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 5.1</span>
+                <div class="test-title">Solution Architect &mdash; Intake</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Given:</strong> "Build an agent that triages P1 incidents automatically"</p>
+        <p><strong>Action:</strong> Follow the solution-design skill workflow from AGENT.md.</p>
+        <div class="expected">
+            <span class="expected-label">Expected output:</span>
+            <ul>
+                <li>Appropriate intake questions (scope, triggers, data sources, success criteria)</li>
+                <li>Solution spec recommending: 1 agent, 2-3 tools, ReAct strategy</li>
+                <li>Architecture decision rationale (single agent because single domain)</li>
+                <li>Identified tables: <code>incident</code>, possibly <code>cmdb_ci</code>, <code>sys_user</code></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="5.2">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 5.2</span>
+                <div class="test-title">Tool Builder &mdash; get_incident_details</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> Follow the tool-script-writer skill to write a <code>get_incident_details</code> tool.</p>
+        <div class="expected">
+            <span class="expected-label">Verify the tool spec includes:</span>
+            <ul>
+                <li>Uses <code>GlideRecordSecure</code> (not <code>GlideRecord</code>)</li>
+                <li>Calls <code>addUserEncodedQuery()</code> for ACL enforcement</li>
+                <li>Calls <code>setLimit()</code> for safety</li>
+                <li>Input schema: <code>incident_number</code> (mandatory)</li>
+                <li>Output schema: <code>status</code>, <code>data</code>, <code>error</code> fields</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="5.3">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 5.3</span>
+                <div class="test-title">Tool Builder &mdash; update_incident_priority</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> Follow the tool-script-writer skill to write an <code>update_incident_priority</code> tool.</p>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Marked as <strong>Supervised mode</strong> (writes data)</li>
+                <li>Uses same security patterns (<code>GlideRecordSecure</code>, <code>addUserEncodedQuery()</code>)</li>
+                <li>Validates input priority value before writing</li>
+                <li>Returns confirmation of the update in output</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="5.4">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 5.4</span>
+                <div class="test-title">Tool Builder &mdash; get_similar_incidents</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> Follow the tool-script-writer skill to write a <code>get_similar_incidents</code> tool using the Query and Summarize pattern.</p>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Uses cookbook Recipe 2 (Query and Summarize) as base pattern</li>
+                <li>Queries by category, short description similarity, or CI</li>
+                <li>Returns summarized results (not raw records)</li>
+                <li>Follows same security patterns</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="5.5">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 5.5</span>
+                <div class="test-title">Agent Configurator &mdash; Write Instructions</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> Follow the agent-prompt-writer skill to write ReAct-strategy instructions for the Incident Triage Agent.</p>
+        <div class="expected">
+            <span class="expected-label">Verify instructions include:</span>
+            <ul>
+                <li><strong>Identity:</strong> "You are an Incident Triage Agent..."</li>
+                <li><strong>Objective:</strong> Clear triage goals (classify, prioritize, route)</li>
+                <li><strong>Tool usage:</strong> When to call each of the 3 tools</li>
+                <li><strong>Workflow:</strong> Step-by-step triage process using ReAct thinking</li>
+                <li><strong>Rules:</strong> Safety constraints and guardrails</li>
+                <li><strong>Output format:</strong> Structured triage results</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="5.6">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 5.6</span>
+                <div class="test-title">Agent Configurator &mdash; Strategy Selection</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> Check the decision matrix in <code>agent-instruction-templates.md</code> for incident triage.</p>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>ReAct is the recommended strategy for incident triage (reactive, tool-using)</li>
+                <li>Decision matrix criteria support this choice (single domain, 2-3 tools, reactive pattern)</li>
+                <li>Planner would be overkill for this use case (documented reasoning)</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="5.7">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 5.7</span>
+                <div class="test-title">Agent Configurator &mdash; Create Agent (Dry Run)</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> Follow the servicenow-agent-builder skill to produce an <code>aia_create</code> dry-run specification.</p>
+        <div class="expected">
+            <span class="expected-label">Verify the dry-run spec includes:</span>
+            <ul>
+                <li>Agent name, description, and instructions</li>
+                <li>Strategy set to ReAct</li>
+                <li>3 tools attached (get_incident_details, update_incident_priority, get_similar_incidents)</li>
+                <li>Each tool has script, input schema, and output schema</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="5.8">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 5.8</span>
+                <div class="test-title">QA Debugger &mdash; Test Plan</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> Follow the iterative-test-fix skill to prepare test cases for the Incident Triage Agent.</p>
+        <div class="expected">
+            <span class="expected-label">Verify minimum 3 test cases:</span>
+            <ul>
+                <li><strong>Happy path:</strong> Valid P1 incident with clear category &rarr; successful triage</li>
+                <li><strong>Edge case:</strong> Incident with missing fields or ambiguous category</li>
+                <li><strong>Error case:</strong> Invalid incident number or ACL restriction</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="5.9">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 5.9</span>
+                <div class="test-title">QA Debugger &mdash; Trace Diagnosis</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Scenario:</strong> The agent returns "Empty Results" when querying incidents.</p>
+        <p><strong>Action:</strong> Follow the iterative-test-fix decision tree to diagnose.</p>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Classifies root cause as SCRIPT_ERROR or ACL_ERROR</li>
+                <li>Diagnostic steps check <code>addUserEncodedQuery()</code> configuration</li>
+                <li>Diagnostic steps check <code>setLimit()</code> values</li>
+                <li>Suggests checking the user's role and ACL rules</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="5.10">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 5.10</span>
+                <div class="test-title">QA Debugger &mdash; Fix Dispatch</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Scenario:</strong> Diagnosis reveals a PROMPT_ERROR (agent misunderstands when to call tools).</p>
+        <p><strong>Action:</strong> Determine which specialist should receive the fix request.</p>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Dispatches back to <strong>Agent Configurator</strong> (not Tool Builder)</li>
+                <li>PROMPT_ERROR = instruction issue, handled by the agent prompt specialist</li>
+                <li>SCRIPT_ERROR would go to Tool Builder instead</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="5.11">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 5.11</span>
+                <div class="test-title">Workflow Orchestrator &mdash; Trigger Setup</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> If extending to multi-agent, verify how the Workflow Orchestrator would configure triggers.</p>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Would use a record trigger on the <code>incident</code> table</li>
+                <li>References <code>multi-agent-handoff-patterns.md</code> for context sharing</li>
+                <li>Defines trigger conditions (e.g., priority = 1, state = New)</li>
+                <li>Covers Flow Designer integration pattern</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="5.12">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 5.12</span>
+                <div class="test-title">Full Pipeline Sanity Check</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> Walk through the complete agent team pipeline for Incident Triage.</p>
+        <div class="expected">
+            <span class="expected-label">Verify the pipeline flows correctly:</span>
+            <ul>
+                <li><strong>Step 1:</strong> Solution Architect &rarr; produces solution spec</li>
+                <li><strong>Step 2:</strong> Tool Builder (x3) &rarr; produces 3 tool scripts with schemas</li>
+                <li><strong>Step 3:</strong> Agent Configurator &rarr; produces agent with instructions + tools attached</li>
+                <li><strong>Step 4:</strong> QA Debugger &rarr; produces test plan, runs tests, reports results</li>
+                <li>Output from each step feeds cleanly into the next step's input</li>
+                <li>No gaps or missing handoffs in the pipeline</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- PHASE 6: SAFETY & SECURITY VALIDATION (5 tests) -->
+    <!-- ============================================================ -->
+
+    <h2 id="phase-6">Phase 6: Safety & Security Validation (5 tests)</h2>
+
+    <div class="note">
+        <strong>Instructions:</strong> These tests verify that all content follows ServiceNow security best practices. Search the content files for security anti-patterns.
+    </div>
+
+    <div class="test-card" data-test="6.1">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 6.1</span>
+                <div class="test-title">GlideRecordSecure Usage</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> Search tool scripts in <code>tool-script-cookbook.md</code> for security compliance.</p>
+        <pre><code># Should find GlideRecordSecure, not plain GlideRecord
+grep -n "GlideRecord" foundry-golden/context/tool-script-cookbook.md
+
+# Should NOT find these dangerous patterns
+grep -n "gs\.\|GlideDateTime\b" foundry-golden/context/tool-script-cookbook.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>All tool scripts use <code>GlideRecordSecure</code> (not plain <code>GlideRecord</code>)</li>
+                <li>No <code>gs.*</code> calls in tool scripts (except <code>gs.info()</code> for logging if needed)</li>
+                <li>No <code>GlideDateTime</code> in tool scripts (use safe alternatives)</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="6.2">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 6.2</span>
+                <div class="test-title">ACL Enforcement (addUserEncodedQuery)</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> Verify all recipe scripts in the cookbook include ACL enforcement.</p>
+        <pre><code># Every recipe with GlideRecordSecure should also have addUserEncodedQuery
+grep -c "addUserEncodedQuery" foundry-golden/context/tool-script-cookbook.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Every recipe that queries records includes <code>addUserEncodedQuery()</code></li>
+                <li>The call appears after <code>addQuery()</code> and before <code>query()</code></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="6.3">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 6.3</span>
+                <div class="test-title">Write Operations Supervised</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> Search the cookbook for recipes that write data (insert, update, delete).</p>
+        <pre><code># Find write operations
+grep -n "\.insert\|\.update\|\.deleteRecord\|\.setValue" foundry-golden/context/tool-script-cookbook.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>All recipes with write operations are marked as <strong>Supervised</strong> mode</li>
+                <li>Supervised mode is clearly documented in the recipe metadata</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="6.4">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 6.4</span>
+                <div class="test-title">Agent Guardrails Present</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> Check that agent instruction templates include guardrails/rules sections.</p>
+        <pre><code>grep -i "guardrail\|rules\|constraint\|boundary\|never\|must not" foundry-golden/context/agent-instruction-templates.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Instruction templates include a Rules or Guardrails section</li>
+                <li>Rules cover: data safety, scope limits, escalation triggers</li>
+                <li>Templates warn against common prompt injection patterns</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="6.5">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 6.5</span>
+                <div class="test-title">QA Debugger Checks Guardian</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> Verify the QA Debugger's diagnostic workflow includes checking for Now Assist Guardian blocks.</p>
+        <pre><code>grep -i "guardian\|blocked\|safety" foundry-golden/subagents/qa-debugger/AGENT.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>QA Debugger workflow includes a step to check for Guardian blocks</li>
+                <li>Knows how to diagnose Guardian-related failures</li>
+                <li>References <code>now-assist-guardian-governance.md</code> or equivalent context</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- PHASE 7: DOCUMENTATION COMPLETENESS (4 tests) -->
+    <!-- ============================================================ -->
+
+    <h2 id="phase-7">Phase 7: Documentation Completeness (4 tests)</h2>
+
+    <div class="test-card" data-test="7.1">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 7.1</span>
+                <div class="test-title">subagents/README.md Architecture</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/subagents/README.md</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Has architecture diagram (ASCII art, Mermaid, or description)</li>
+                <li>Lists all 6 agents in a roster/table</li>
+                <li>Shows the dispatch flow (Architect &rarr; Specialists)</li>
+                <li>Describes how agents communicate</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="7.2">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 7.2</span>
+                <div class="test-title">foundry-golden/README.md Counts</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Open:</strong></p>
+        <pre><code>foundry-golden/README.md</code></pre>
+        <p><strong>Cross-reference with actual counts:</strong></p>
+        <pre><code>ls foundry-golden/context/*.md | wc -l    # Expected: ~20
+ls -d foundry-golden/skills/*/  | wc -l   # Expected: ~13
+ls -d foundry-golden/subagents/*/ | wc -l  # Expected: 6</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>README states updated resource counts</li>
+                <li>Counts roughly match actual file counts (~20 context, ~13 skills, 6 agents)</li>
+                <li>No stale counts from before Sprint 1/2</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="7.3">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 7.3</span>
+                <div class="test-title">AGENT.md Error Handling Sections</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> Check each AGENT.md for error handling documentation.</p>
+        <pre><code>for agent in solution-architect tool-builder skill-designer agent-configurator workflow-orchestrator qa-debugger; do
+  echo "=== $agent ==="
+  grep -i "error\|fail\|exception\|fallback" "foundry-golden/subagents/$agent/AGENT.md" | head -3
+done</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Each AGENT.md has an error handling or failure mode section</li>
+                <li>Describes what happens when the agent encounters errors</li>
+                <li>Includes fallback or escalation behavior</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-card" data-test="7.4">
+        <div class="test-header">
+            <div>
+                <span class="test-id">Test 7.4</span>
+                <div class="test-title">SKILL.md Examples/Output Format</div>
+            </div>
+            <div class="result-buttons">
+                <button class="result-btn pass-btn" onclick="setResult(this, 'pass')">Pass</button>
+                <button class="result-btn fail-btn" onclick="setResult(this, 'fail')">Fail</button>
+                <button class="result-btn skip-btn" onclick="setResult(this, 'skip')">Skip</button>
+            </div>
+        </div>
+        <p><strong>Action:</strong> Check each new SKILL.md for examples or output format documentation.</p>
+        <pre><code>for skill in solution-design tool-script-writer agent-prompt-writer iterative-test-fix; do
+  echo "=== $skill ==="
+  grep -i "example\|output\|format\|template" "foundry-golden/skills/$skill/SKILL.md" | head -3
+done</code></pre>
+        <div class="expected">
+            <span class="expected-label">Verify:</span>
+            <ul>
+                <li>Each SKILL.md has examples or a sample output section</li>
+                <li>Output format is clearly defined (template, JSON, markdown, etc.)</li>
+                <li>Examples are realistic and relevant to ServiceNow use cases</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TESTER INFO -->
+    <!-- ============================================================ -->
+
+    <div class="tester-info">
+        <h3>Test Session Info</h3>
+        <div class="tester-field">
+            <label for="test-date">Date Tested:</label>
+            <input type="date" id="test-date">
+        </div>
+        <div class="tester-field">
+            <label for="tester-name">Tester:</label>
+            <input type="text" id="tester-name" placeholder="Enter your name">
+        </div>
+        <div class="tester-field">
+            <label for="test-env">Environment:</label>
+            <input type="text" id="test-env" placeholder="e.g., macOS, foundry-golden branch">
+        </div>
+        <div class="tester-field">
+            <label for="test-notes">Notes:</label>
+            <textarea id="test-notes" placeholder="Any issues, observations, or follow-up items..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        const results = {};
+        const totalTests = document.querySelectorAll('.test-card').length;
+
+        // Update the displayed total to match actual card count
+        document.getElementById('total-count').textContent = totalTests;
+
+        function setResult(btn, result) {
+            const card = btn.closest('.test-card');
+            const testId = card.dataset.test;
+
+            // Remove active from all buttons in this card
+            card.querySelectorAll('.result-btn').forEach(b => b.classList.remove('active'));
+
+            // Add active to clicked button
+            btn.classList.add('active');
+
+            // Update card styling
+            card.classList.remove('pass', 'fail', 'skip');
+            card.classList.add(result);
+
+            // Store result
+            results[testId] = result;
+
+            // Update progress
+            updateProgress();
+        }
+
+        function updateProgress() {
+            let pass = 0, fail = 0, skip = 0;
+
+            Object.values(results).forEach(r => {
+                if (r === 'pass') pass++;
+                else if (r === 'fail') fail++;
+                else if (r === 'skip') skip++;
+            });
+
+            document.getElementById('pass-count').textContent = pass;
+            document.getElementById('fail-count').textContent = fail;
+            document.getElementById('skip-count').textContent = skip;
+
+            const passWidth = (pass / totalTests) * 100;
+            const failWidth = (fail / totalTests) * 100;
+            const skipWidth = (skip / totalTests) * 100;
+
+            document.getElementById('progress-pass').style.width = passWidth + '%';
+            document.getElementById('progress-fail').style.width = failWidth + '%';
+            document.getElementById('progress-skip').style.width = skipWidth + '%';
+        }
+
+        // Set today's date
+        document.getElementById('test-date').valueAsDate = new Date();
+    </script>
+</body>
+</html>

@@ -6,7 +6,7 @@ Central repository of vetted resources for AI Foundry team's Now Assist POC deve
 
 This repository contains pre-loaded context, skills, and templates that accelerate POC development. Resources are automatically included in new projects created with `foundry_init`.
 
-**Current Status:** All content complete
+**Current Status:** Agent team operational — 20 context files, 13 skills, 6 sub-agents
 
 **Access:** This repository is **private**. Team members must authenticate with GitHub CLI (`gh auth login`) before using Foundry tools.
 
@@ -16,11 +16,11 @@ This repository contains pre-loaded context, skills, and templates that accelera
 
 | Resource Type | Count | Location |
 |---------------|-------|----------|
-| Context files | 6 | `context/` |
-| Skills | 6 | `skills/` |
+| Context files | 20 | `context/` |
+| Skills | 13 | `skills/` |
 | Templates | 3 | `templates/` |
 | Agent Examples | 0 | `agent_examples/` |
-| Sub-Agents | - | `subagents/` (placeholder) |
+| Sub-Agents | 6 | `subagents/` |
 | Hooks | - | `hooks/` (placeholder) |
 
 ---
@@ -31,14 +31,28 @@ This repository contains pre-loaded context, skills, and templates that accelera
 foundry-golden/
 ├── README.md                     # This file
 ├── HOWTO.md                      # Content contribution guide
-├── context/                      # Domain knowledge (6 files)
-│   ├── now-assist-platform.md    # Platform architecture & APIs
-│   ├── genai-framework.md        # GenAI Controller & skills
-│   ├── agentic-patterns.md       # Agentic framework & tools
-│   ├── troubleshooting-guide.md  # Debug patterns & syslogs
-│   ├── security-patterns.md      # ACLs, roles, secure coding
-│   └── performance-tuning.md     # Query optimization & caching
-├── skills/                       # Reusable skills (6)
+├── context/                                # Domain knowledge (20 files)
+│   ├── now-assist-platform.md              # Platform architecture & APIs
+│   ├── genai-framework.md                  # GenAI Controller & skills
+│   ├── agentic-patterns.md                 # Agentic framework & tools
+│   ├── troubleshooting-guide.md            # Debug patterns & syslogs
+│   ├── security-patterns.md                # ACLs, roles, secure coding
+│   ├── performance-tuning.md               # Query optimization & caching
+│   ├── tool-script-rules.md                # Tool script safety rules
+│   ├── servicenow-ai-data-model.md         # AI table reference
+│   ├── servicenow-ai-system-properties.md  # System properties
+│   ├── servicenow-mcp-integration.md       # MCP integration patterns
+│   ├── building-discipline.md              # Development discipline
+│   ├── now-assist-guardian-governance.md    # Guardian safety filters
+│   ├── prompt-engineering-patterns.md      # [NEW] Prompt templates & debugging
+│   ├── tool-script-cookbook.md              # [NEW] 12 tool script recipes
+│   ├── agent-instruction-templates.md      # [NEW] Strategy-specific templates
+│   ├── iterative-development-workflow.md   # [NEW] MCP dev loop
+│   ├── flow-designer-for-ai.md             # [NEW] Flow + AI integration
+│   ├── customer-interaction-patterns.md    # [NEW] End-user channels
+│   ├── multi-agent-handoff-patterns.md     # [NEW] Multi-agent wiring
+│   └── data-kit-retrieval-patterns.md      # [NEW] RAG & Data Kit
+├── skills/                                 # Reusable skills (13)
 │   ├── now-assist-skill-builder/
 │   │   ├── SKILL.md
 │   │   └── examples/
@@ -48,13 +62,34 @@ foundry-golden/
 │   ├── servicenow-troubleshooting/
 │   │   ├── SKILL.md
 │   │   └── examples/
-│   ├── agent-builder/
+│   ├── servicenow-agent-builder/
 │   │   ├── SKILL.md
 │   │   └── examples/
 │   ├── testing-patterns/
 │   │   ├── SKILL.md
 │   │   └── examples/
-│   └── deployment-automation/
+│   ├── deployment-automation/
+│   │   ├── SKILL.md
+│   │   └── examples/
+│   ├── agentic-workflow-builder/
+│   │   ├── SKILL.md
+│   │   └── examples/
+│   ├── voice-agent-builder/
+│   │   ├── SKILL.md
+│   │   └── examples/
+│   ├── servicenow-ai-evaluation/
+│   │   ├── SKILL.md
+│   │   └── examples/
+│   ├── solution-design/                    # [NEW] Use case intake → spec
+│   │   ├── SKILL.md
+│   │   └── examples/
+│   ├── tool-script-writer/                 # [NEW] Description → safe script
+│   │   ├── SKILL.md
+│   │   └── examples/
+│   ├── agent-prompt-writer/                # [NEW] Use case → instructions
+│   │   ├── SKILL.md
+│   │   └── examples/
+│   └── iterative-test-fix/                 # [NEW] Test → trace → fix loop
 │       ├── SKILL.md
 │       └── examples/
 ├── templates/                    # Project templates (3)
@@ -70,17 +105,37 @@ foundry-golden/
 │       ├── AGENT.md              # Documentation template
 │       ├── config.json           # Metadata template
 │       └── src/                  # ServiceNow artifacts
-├── subagents/                    # Claude sub-agents (placeholder)
-│   └── README.md                 # Future use documentation
+├── subagents/                    # Claude sub-agents (6 agents)
+│   ├── README.md                 # Agent team documentation
+│   ├── solution-architect/       # Lead — intake, design, dispatch
+│   │   ├── AGENT.md
+│   │   └── config.json
+│   ├── tool-builder/             # Safe tool scripts + schemas
+│   │   ├── AGENT.md
+│   │   └── config.json
+│   ├── skill-designer/           # Now Assist skills + prompts
+│   │   ├── AGENT.md
+│   │   └── config.json
+│   ├── agent-configurator/       # Agent instructions + strategy
+│   │   ├── AGENT.md
+│   │   └── config.json
+│   ├── workflow-orchestrator/    # Multi-agent wiring + triggers
+│   │   ├── AGENT.md
+│   │   └── config.json
+│   └── qa-debugger/              # Test, trace, diagnose, fix
+│       ├── AGENT.md
+│       └── config.json
 └── hooks/                        # Lifecycle hooks (placeholder)
     └── README.md                 # Future use documentation
 ```
 
 ---
 
-## Context Files (6)
+## Context Files (20)
 
 Files in `context/` provide domain knowledge to Claude Code.
+
+### Core Platform
 
 | File | Description | Topics Covered |
 |------|-------------|----------------|
@@ -90,21 +145,54 @@ Files in `context/` provide domain knowledge to Claude Code.
 | `troubleshooting-guide.md` | Debug patterns | Syslogs, AIA logs, common issues |
 | `security-patterns.md` | Security best practices | ACLs, roles, input validation |
 | `performance-tuning.md` | Optimization | Query optimization, caching, N+1 |
+| `tool-script-rules.md` | Tool script safety | Forbidden APIs, GlideRecordSecure |
+| `servicenow-ai-data-model.md` | AI table reference | All AIA/skill/execution tables |
+| `servicenow-ai-system-properties.md` | System properties | All sn_aia.* properties |
+| `servicenow-mcp-integration.md` | MCP integration | MCP server tools and patterns |
+| `building-discipline.md` | Development discipline | Team conventions |
+| `now-assist-guardian-governance.md` | Guardian safety | 16 safety categories, filtering |
+
+### New Content (Agent Team Dependencies)
+
+| File | Description | Topics Covered |
+|------|-------------|----------------|
+| `prompt-engineering-patterns.md` | Prompt templates | Agent type prompts, few-shot, chain-of-thought, debugging |
+| `tool-script-cookbook.md` | Script recipes | 12 complete tool scripts with schemas |
+| `agent-instruction-templates.md` | Instruction guide | Templates per strategy, pitfalls, length guidance |
+| `iterative-development-workflow.md` | Development loop | Write → deploy → test → trace → fix with MCP tools |
+| `flow-designer-for-ai.md` | Flow + AI patterns | Flow actions as tools, triggers, flow-agent integration |
+| `customer-interaction-patterns.md` | User channels | Now Assist panel, VA, portal, voice, API |
+| `multi-agent-handoff-patterns.md` | Multi-agent patterns | Context sharing, failure propagation, handoffs |
+| `data-kit-retrieval-patterns.md` | RAG patterns | Data Kit setup, search profiles, retrieval tuning |
 
 ---
 
-## Skills (6)
+## Skills (13)
 
 Skills in `skills/` teach Claude how to perform specific tasks.
+
+### Core Skills
 
 | Skill | Description | Examples Included |
 |-------|-------------|-------------------|
 | `now-assist-skill-builder` | Creating Now Assist skills | Case summarizer skill |
 | `api-integration` | ServiceNow REST APIs | Outbound REST client |
 | `servicenow-troubleshooting` | Debug with tools | Skill failure, performance |
-| `agent-builder` | Creating AI Agents | Incident triage agent |
+| `servicenow-agent-builder` | Creating AI Agents | Incident triage agent |
 | `testing-patterns` | Unit testing, ATF | Business rule tests |
 | `deployment-automation` | CI/CD, update sets | Pipeline workflow |
+| `agentic-workflow-builder` | Multi-agent workflows | Incident resolution workflow |
+| `voice-agent-builder` | Voice agent creation | ITSM voice agent |
+| `servicenow-ai-evaluation` | AI evaluation framework | Evaluation setup |
+
+### New Skills (Agent Team Workflows)
+
+| Skill | Description | Key Outputs |
+|-------|-------------|-------------|
+| `solution-design` | Structured use case intake → architecture spec | Solution spec document |
+| `tool-script-writer` | Tool description → safe script + schemas | Working tool + deployment report |
+| `agent-prompt-writer` | Use case → agent instructions | Instructions text + strategy recommendation |
+| `iterative-test-fix` | Test → trace → diagnose → fix loop | Test report with pass/fail and root causes |
 
 ---
 
@@ -120,11 +208,11 @@ Templates in `templates/` provide project starting points.
 
 ### Template Settings
 
-| Template | Context Files | Skills |
-|----------|---------------|--------|
-| sparc-starter | Yes (6) | Yes (6) |
-| standard | Yes (6) | No |
-| minimal | No | No |
+| Template | Context Files | Skills | Sub-Agents |
+|----------|---------------|--------|------------|
+| sparc-starter | Yes (20) | Yes (13) | Yes (6) |
+| standard | Yes (20) | No | No |
+| minimal | No | No | No |
 
 ---
 
@@ -146,13 +234,24 @@ See [agent_examples/README.md](agent_examples/README.md) for details.
 
 ---
 
-## Placeholders (Future)
-
-### Sub-Agents
+## Sub-Agents (Agent Team)
 
 Directory: `subagents/`
 
-Future home for Claude Code sub-agents for workflow orchestration. Currently, the team uses [Superpowers](https://github.com/obra/superpowers) for this purpose.
+The AI Foundry agent team — 6 specialist sub-agents coordinated by a Lead Solution Architect. Each specialist is loaded with exactly the right context, skills, and MCP tools to handle one aspect of the AI POC build pipeline.
+
+| Agent | Role | Dispatched By |
+|-------|------|---------------|
+| **Solution Architect** | Lead — intake, design, dispatch, validate | Developer (direct) |
+| **Tool Builder** | Safe tool scripts + schemas + deployment | Solution Architect |
+| **Skill Designer** | Now Assist skills + prompts + RAG | Solution Architect |
+| **Agent Configurator** | Agent instructions + strategy selection | Solution Architect |
+| **Workflow Orchestrator** | Multi-agent wiring + triggers | Solution Architect |
+| **QA & Debugger** | Test, trace, diagnose, fix, re-test | Solution Architect |
+
+See [subagents/README.md](subagents/README.md) for full architecture documentation.
+
+## Placeholders (Future)
 
 ### Hooks
 

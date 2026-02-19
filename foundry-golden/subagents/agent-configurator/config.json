@@ -1,0 +1,23 @@
+{
+  "name": "agent-configurator",
+  "description": "Creates AI agents — selects strategy, writes instructions, attaches tools, configures execution, and tests behavior",
+  "role": "specialist",
+  "context": [
+    "agentic-patterns",
+    "agent-instruction-templates",
+    "prompt-engineering-patterns",
+    "servicenow-ai-data-model",
+    "tool-script-rules"
+  ],
+  "skills": [
+    "agent-prompt-writer",
+    "servicenow-agent-builder"
+  ],
+  "mcpTools": [
+    "servicenow_aia_create",
+    "servicenow_aia_execute",
+    "servicenow_aia_get",
+    "servicenow_query"
+  ],
+  "outputFormat": "agent-deployment-report"
+}

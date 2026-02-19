@@ -1,8 +1,9 @@
 {
   "mcpServers": {
     "foundry": {
+      "type": "stdio",
       "command": "node",
-      "args": ["/Users/gpietro/projects/snaifmcp/foundry-mcp/dist/index.js"]
+      "args": ["/Users/greg.pietro/projects/snaifmcp/foundry-mcp/dist/index.js"]
     }
   }
 }

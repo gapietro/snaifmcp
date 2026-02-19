@@ -371,6 +371,61 @@ catch (e) {
 
 ---
 
+## AI Agent Security (Zurich)
+
+### AI-Specific Roles
+
+| Role | Description |
+|------|-------------|
+| `sn_aia.admin` | Full CRUD on all AI agent records |
+| `sn_aia.viewer` | Read-only + report access on all AI tables |
+| `agent_role_config_admin` | Access/modify Agent role configurations |
+| `agent_role_config_viewer` | View Agent role configurations |
+| `sn_mcp_client.admin` | MCP Client admin |
+| `sn_mcp_client.viewer` | MCP Client read-only |
+| `sn_voice_aia.admin` | Voice agent configuration access |
+
+### GlideRecordSecure in AI Agent Scripts
+
+**CRITICAL:** AI agent tool scripts MUST use `GlideRecordSecure` (not `GlideRecord`) and MUST call `addUserEncodedQuery()`:
+
+```javascript
+// ❌ WRONG — bypasses user ACLs
+var gr = new GlideRecord('incident');
+gr.query();
+
+// ✅ CORRECT — enforces user permissions
+var gr = new GlideRecordSecure('incident');
+gr.addUserEncodedQuery();
+gr.query();
+```
+
+### Role Masking (6-Step Evaluation Chain)
+
+When an AI agent executes, access is evaluated through:
+
+1. **User identity** — Who initiated the request
+2. **Agent role configuration** — Roles assigned to the agent
+3. **ACL evaluation** — Access Control Lists on target tables/records
+4. **Role masking** — Intersection of user roles and agent roles
+5. **Dynamic user query** — `addUserEncodedQuery()` enforcement
+6. **Data access** — Final permission determination
+
+### Agent Security Models
+
+| Model | Description | When to Use |
+|-------|-------------|-------------|
+| **Dynamic user** | User passes roles to agent, ACLs determine access | Default and recommended |
+| **AI user** | Agent runs with dedicated service account | Service-to-service automation |
+| **Specific roles** | Agent limited to assigned roles only | Restricted access scenarios |
+| **Public** | Any authenticated user can trigger | Low-risk, broad-access tools |
+
+### Now Assist Guardian
+
+Guardian monitors AI inputs/outputs across 16 safety categories including offensive content, prompt injection, jailbreak attempts, PII exposure, credential exposure, and code injection. See `now-assist-guardian-governance.md` for full details.
+
+---
+
 ## Related Resources
 
 - [Now Assist Platform](./now-assist-platform.md) - Platform security features

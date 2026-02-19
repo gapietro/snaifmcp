@@ -2,7 +2,7 @@
  * ServiceNow HTTP Client
  * Handles all HTTP communication with ServiceNow instances
  */
-import { AuthConfig, ServiceNowErrorType, TableAPIResponse, InstanceInfo, UserInfo } from './types.js';
+import { AuthConfig, ServiceNowErrorType, TableAPIResponse, SingleRecordResponse, InstanceInfo, UserInfo } from './types.js';
 interface RequestOptions {
     method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
     headers?: Record<string, string>;
@@ -54,6 +54,18 @@ export declare class ServiceNowClient {
      * Query a table
      */
     queryTable(table: string, query?: string, fields?: string[], limit?: number): Promise<TableAPIResponse>;
+    /**
+     * Create a record in a table
+     */
+    createRecord(table: string, data: Record<string, unknown>): Promise<SingleRecordResponse>;
+    /**
+     * Update a record in a table
+     */
+    updateRecord(table: string, sysId: string, data: Record<string, unknown>): Promise<SingleRecordResponse>;
+    /**
+     * Delete a record from a table
+     */
+    deleteRecord(table: string, sysId: string): Promise<void>;
     /**
      * Set access token (for OAuth)
      */

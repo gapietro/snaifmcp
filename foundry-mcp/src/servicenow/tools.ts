@@ -7,6 +7,8 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { connectionManager } from './connection-manager.js';
 import { ServiceNowClient } from './client.js';
 import { ServiceNowError, ServiceNowErrorType } from './types.js';
+import { AIA_EXECUTION_PLAN_TABLES } from './table-discovery.js';
+import { ensureScriptApi, executeViaScriptApi } from './script-api.js';
 
 // Tool definitions
 export const SERVICENOW_CONNECT_TOOL: Tool = {
@@ -237,6 +239,18 @@ export const SERVICENOW_SCRIPT_TOOL: Tool = {
   name: 'servicenow_script',
   description: `Execute a background script on ServiceNow for testing and debugging.
 
+OUTPUT: Use gs.info() for output - it will be automatically captured and returned.
+The tool transforms gs.info() calls into returnable results.
+
+Example:
+  var gr = new GlideRecord('incident');
+  gr.addQuery('active', true);
+  gr.setLimit(3);
+  gr.query();
+  while(gr.next()) {
+    gs.info(gr.number);  // Each call captured and returned
+  }
+
 SAFETY: Scripts are analyzed before execution. Dangerous operations are blocked.
 
 Execution modes:
@@ -249,10 +263,6 @@ Blocked operations (always):
 - Credential/password access
 - External HTTP calls
 - System property changes
-
-Example scripts:
-- Count records: "var gr = new GlideRecord('incident'); gr.query(); gs.info('Count: ' + gr.getRowCount());"
-- Check user: "gs.info('User: ' + gs.getUserName());"
 
 Requires an active connection (use servicenow_connect first).`,
   inputSchema: {
@@ -750,14 +760,8 @@ Example:
     const query = queryParts.join('^');
 
     // Query the AIA execution table
-    // Note: Table name may vary by ServiceNow version (sys_aia_execution, sn_agent_execution, etc.)
-    // Try multiple possible table names
-    const possibleTables = [
-      'sys_aia_execution',
-      'sn_agent_execution',
-      'x_snc_aia_execution',
-      'sn_ai_agent_execution',
-    ];
+    // Table names defined in table-discovery.ts (single source of truth)
+    const possibleTables = AIA_EXECUTION_PLAN_TABLES;
 
     let executions: Record<string, unknown>[] = [];
     let usedTable = '';
@@ -1313,6 +1317,10 @@ function analyzeScript(script: string): ScriptAnalysisResult {
   };
 }
 
+// ============================================================================
+// Script Output Transformation (removed — handled by Scripted REST API)
+// ============================================================================
+
 // Wrap script with readonly guards
 function wrapReadonlyScript(script: string): string {
   // Wrap the script to prevent actual mutations
@@ -1362,6 +1370,15 @@ if (__mutation_attempts.length > 0) {
 }
 
 export async function handleServiceNowScript(args: Record<string, unknown>): Promise<ToolResult> {
+  // Validate input first (before connection check — better UX)
+  const script = args.script as string;
+  if (!script || script.trim().length === 0) {
+    return {
+      content: [{ type: 'text', text: 'Error: script is required and cannot be empty' }],
+      isError: true,
+    };
+  }
+
   // Check connection
   if (!connectionManager.isConnected()) {
     return {
@@ -1384,18 +1401,10 @@ Example:
     };
   }
 
-  // Parse arguments
-  const script = args.script as string;
+  // Parse remaining arguments
   const mode = (args.mode as string) || 'readonly';
   const timeout = Math.min(Math.max((args.timeout as number) || 30, 1), 120);
   const description = (args.description as string) || 'Script executed via Claude Code';
-
-  if (!script || script.trim().length === 0) {
-    return {
-      content: [{ type: 'text', text: 'Error: script is required and cannot be empty' }],
-      isError: true,
-    };
-  }
 
   // Analyze script for safety
   const analysis = analyzeScript(script);
@@ -1416,79 +1425,39 @@ If you need to perform these operations, use the ServiceNow UI with appropriate 
     };
   }
 
-  // In readonly mode, block mutations
+  // Prepare script: apply readonly wrapper if needed
+  let preparedScript = script;
+  let mutationWarning = '';
+
   if (mode === 'readonly' && analysis.hasMutations) {
-    const warningText = `Script contains data mutation operations that will be BLOCKED in readonly mode:
+    mutationWarning = `Script contains data mutation operations that will be BLOCKED in readonly mode:
 
 ${analysis.warnings.filter(w => w.includes('operation')).map(w => '- ' + w).join('\n')}
 
 The script will run but mutations will not be committed.
 To execute mutations, use mode="execute" (requires explicit confirmation).`;
-
-    // Continue with readonly wrapper, but warn
-    const wrappedScript = wrapReadonlyScript(script);
-
-    try {
-      const result = await executeScript(client, wrappedScript, timeout, description);
-      return {
-        content: [{
-          type: 'text',
-          text: `${warningText}
-
-${'─'.repeat(60)}
-EXECUTION RESULT (readonly mode)
-${'─'.repeat(60)}
-
-${result.output || '(no output)'}
-
-${result.logs ? `\nLogs:\n${result.logs}` : ''}`,
-        }],
-      };
-    } catch (error) {
-      return formatScriptError(error, mode);
-    }
-  }
-
-  // Execute mode - warn about mutations
-  if (mode === 'execute' && analysis.hasMutations) {
-    // For execute mode with mutations, show clear warning in output
-    const mutationWarning = `[EXECUTE MODE] This script may modify data:
+    preparedScript = wrapReadonlyScript(script);
+  } else if (mode === 'readonly') {
+    preparedScript = wrapReadonlyScript(script);
+  } else if (mode === 'execute' && analysis.hasMutations) {
+    mutationWarning = `[EXECUTE MODE] This script may modify data:
 ${analysis.warnings.map(w => '- ' + w).join('\n')}`;
-
-    try {
-      const result = await executeScript(client, script, timeout, description);
-      return {
-        content: [{
-          type: 'text',
-          text: `${mutationWarning}
-
-${'─'.repeat(60)}
-EXECUTION RESULT
-${'─'.repeat(60)}
-
-${result.output || '(no output)'}
-
-${result.logs ? `\nLogs:\n${result.logs}` : ''}
-${result.duration ? `\nDuration: ${result.duration}ms` : ''}`,
-        }],
-      };
-    } catch (error) {
-      return formatScriptError(error, mode);
-    }
   }
 
-  // Standard execution (no mutations detected or execute mode)
+  // Execute the script
   try {
-    const scriptToRun = mode === 'readonly' ? wrapReadonlyScript(script) : script;
-    const result = await executeScript(client, scriptToRun, timeout, description);
+    const result = await executeScript(client, preparedScript, timeout, description);
 
     const status = connectionManager.getStatus();
     const header = `Script Execution on ${status.activeInstance}
 Mode: ${mode}
-Timeout: ${timeout}s
-${analysis.warnings.length > 0 ? `Warnings: ${analysis.warnings.length}` : ''}`;
+Timeout: ${timeout}s`;
 
-    let output = `${header}
+    let output = mutationWarning
+      ? `${mutationWarning}\n\n${header}`
+      : header;
+
+    output += `
 
 ${'─'.repeat(60)}
 RESULT
@@ -1529,49 +1498,72 @@ async function executeScript(
   timeout: number,
   description: string
 ): Promise<ScriptResult> {
-  // Try multiple known script execution endpoints
-  const endpoints = [
+  // Fallback chain:
+  // 1. Scripted REST API (best: server-side gs.info capture via GlideEvaluator)
+  // 2. sys_script_fix record (fallback: monkey-patch + syslog polling)
+  // 3. Direct evaluation endpoints (last resort: no gs.info capture)
+
+  // --- Attempt 1: Scripted REST API ---
+  try {
+    const apiState = await ensureScriptApi(client);
+    if (apiState) {
+      const apiResult = await executeViaScriptApi(client, script, timeout);
+      const outputLines = apiResult.output.length > 0
+        ? apiResult.output.join('\n')
+        : apiResult.returnValue || '(no output)';
+      const errorSuffix = apiResult.error ? `\n\nScript error: ${apiResult.error}` : '';
+      return {
+        output: outputLines + errorSuffix,
+        duration: apiResult.duration,
+        success: apiResult.success,
+      };
+    }
+  } catch {
+    // Scripted REST API call failed — fall through to next method
+  }
+
+  // --- Attempt 2: sys_script_fix record ---
+  try {
+    return await executeViaScriptRecord(client, script, timeout, description);
+  } catch {
+    // Fall through to direct endpoints
+  }
+
+  // --- Attempt 3: Direct evaluation endpoints ---
+  const directEndpoints = [
     { path: '/api/now/sp/widget/script', method: 'POST' as const },
     { path: '/api/sn_sc/servicecatalog/items/script', method: 'POST' as const },
   ];
 
-  // First, try using a sys_script record approach
-  // This creates a temporary script record, executes it, and cleans up
-  try {
-    return await executeViaScriptRecord(client, script, timeout, description);
-  } catch (scriptRecordError) {
-    // If that fails, try direct evaluation endpoints
-    for (const endpoint of endpoints) {
-      try {
-        const response = await client.requestWithRetry<Record<string, unknown>>(
-          endpoint.path,
-          {
-            method: endpoint.method,
-            body: { script, timeout: timeout * 1000 },
-            timeout: (timeout + 5) * 1000,
-          }
-        );
-
-        if (response.result) {
-          return {
-            output: String(response.result),
-            success: true,
-          };
+  for (const endpoint of directEndpoints) {
+    try {
+      const response = await client.requestWithRetry<Record<string, unknown>>(
+        endpoint.path,
+        {
+          method: endpoint.method,
+          body: { script, timeout: timeout * 1000 },
+          timeout: (timeout + 5) * 1000,
         }
-      } catch {
-        // Endpoint not available, try next
-        continue;
-      }
-    }
+      );
 
-    // If all direct methods fail, return a helpful error
-    throw new ServiceNowError(
-      ServiceNowErrorType.SCRIPT_ERROR,
-      'No script execution endpoint available on this instance',
-      { triedEndpoints: endpoints.map(e => e.path) },
-      'Script execution may require a custom Scripted REST API or additional permissions'
-    );
+      if (response.result) {
+        return {
+          output: String(response.result),
+          success: true,
+        };
+      }
+    } catch {
+      continue;
+    }
   }
+
+  // All methods failed
+  throw new ServiceNowError(
+    ServiceNowErrorType.SCRIPT_ERROR,
+    'No script execution endpoint available on this instance',
+    { triedEndpoints: ['Scripted REST API', 'sys_script_fix', ...directEndpoints.map(e => e.path)] },
+    'Ensure your user has admin role, or ask an admin to install the Foundry Script Runner Scripted REST API'
+  );
 }
 
 async function executeViaScriptRecord(
@@ -1580,8 +1572,9 @@ async function executeViaScriptRecord(
   timeout: number,
   description: string
 ): Promise<ScriptResult> {
-  // This approach uses the Evaluator script include concept
-  // We'll create a script that captures its output via gs.info
+  // Monkey-patch gs.info to capture output, then poll syslog for results.
+  // Uses a unique marker to avoid collisions with other scripts.
+  const markerId = `__FMCP_${Date.now()}__`;
 
   const wrappedScript = `
 var __output = [];
@@ -1592,107 +1585,101 @@ gs.info = function(msg) {
 };
 
 try {
-  ${script}
+${script}
 } catch(e) {
   __output.push('ERROR: ' + e.message);
 }
 
 gs.info = __originalInfo;
-gs.info('__SCRIPT_OUTPUT__: ' + JSON.stringify(__output));
+gs.info('${markerId}' + JSON.stringify(__output));
 `;
 
-  // Try to execute via Fix Script or Background Script mechanism
-  // First check if there's a script execution table we can use
   const startTime = Date.now();
 
   // Create a temporary fix script record
-  try {
-    const createResponse = await client.requestWithRetry<{ result: { sys_id: string } }>(
-      '/api/now/table/sys_script_fix',
-      {
-        method: 'POST',
-        body: {
-          name: `Claude_Temp_${Date.now()}`,
-          script: wrappedScript,
-          description: description,
-          active: true,
-        },
-        timeout: 10000,
-      }
-    );
-
-    const scriptSysId = createResponse.result?.sys_id;
-    if (!scriptSysId) {
-      throw new Error('Failed to create script record');
+  const createResponse = await client.requestWithRetry<{ result: { sys_id: string } }>(
+    '/api/now/table/sys_script_fix',
+    {
+      method: 'POST',
+      body: {
+        name: `Claude_Temp_${Date.now()}`,
+        script: wrappedScript,
+        description: description,
+        active: true,
+      },
+      timeout: 10000,
     }
+  );
 
-    // Execute the fix script
-    try {
-      await client.requestWithRetry<Record<string, unknown>>(
-        `/api/now/table/sys_script_fix/${scriptSysId}`,
-        {
-          method: 'PATCH',
-          body: { state: 'ready' },
-          timeout: timeout * 1000,
-        }
-      );
-    } catch {
-      // Execution might fail but output could still be captured
-    }
-
-    // Wait a moment for execution
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Check syslog for output
-    const logResponse = await client.queryTable(
-      'syslog',
-      `messageLIKE__SCRIPT_OUTPUT__^sys_created_on>=javascript:gs.minutesAgoStart(5)^ORDERBYDESCsys_created_on`,
-      ['message'],
-      1
-    );
-
-    // Clean up - delete the temp script
-    try {
-      await client.requestWithRetry<Record<string, unknown>>(
-        `/api/now/table/sys_script_fix/${scriptSysId}`,
-        { method: 'DELETE', timeout: 5000 }
-      );
-    } catch {
-      // Cleanup failure is not critical
-    }
-
-    const duration = Date.now() - startTime;
-
-    if (logResponse.result && logResponse.result.length > 0) {
-      const logMessage = logResponse.result[0].message as string;
-      const outputMatch = logMessage.match(/__SCRIPT_OUTPUT__:\s*(\[.*\])/);
-      if (outputMatch) {
-        try {
-          const outputArray = JSON.parse(outputMatch[1]) as string[];
-          return {
-            output: outputArray.join('\n'),
-            duration,
-            success: true,
-          };
-        } catch {
-          return {
-            output: logMessage,
-            duration,
-            success: true,
-          };
-        }
-      }
-    }
-
-    return {
-      output: '(script executed but no output captured)',
-      duration,
-      success: true,
-    };
-  } catch (error) {
-    // Fix script approach didn't work
-    throw error;
+  const scriptSysId = createResponse.result?.sys_id;
+  if (!scriptSysId) {
+    throw new Error('Failed to create script record');
   }
+
+  // Trigger execution by setting state to ready
+  try {
+    await client.requestWithRetry<Record<string, unknown>>(
+      `/api/now/table/sys_script_fix/${scriptSysId}`,
+      {
+        method: 'PATCH',
+        body: { state: 'ready' },
+        timeout: timeout * 1000,
+      }
+    );
+  } catch {
+    // Execution trigger might return an error but still execute
+  }
+
+  // Wait for execution to complete
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  // Check syslog for output using the unique marker
+  const logResponse = await client.queryTable(
+    'syslog',
+    `messageLIKE${markerId}^sys_created_on>=javascript:gs.minutesAgoStart(5)^ORDERBYDESCsys_created_on`,
+    ['message'],
+    1
+  );
+
+  // Clean up — delete the temp script
+  try {
+    await client.requestWithRetry<Record<string, unknown>>(
+      `/api/now/table/sys_script_fix/${scriptSysId}`,
+      { method: 'DELETE', timeout: 5000 }
+    );
+  } catch {
+    // Cleanup failure is not critical
+  }
+
+  const duration = Date.now() - startTime;
+
+  if (logResponse.result && logResponse.result.length > 0) {
+    const logMessage = logResponse.result[0].message as string;
+    const markerIndex = logMessage.indexOf(markerId);
+    if (markerIndex !== -1) {
+      const jsonPart = logMessage.substring(markerIndex + markerId.length);
+      try {
+        const outputArray = JSON.parse(jsonPart) as string[];
+        return {
+          output: outputArray.join('\n'),
+          duration,
+          success: true,
+        };
+      } catch {
+        return {
+          output: logMessage,
+          duration,
+          success: true,
+        };
+      }
+    }
+  }
+
+  return {
+    output: '(no output captured - use gs.info() to return values)',
+    duration,
+    success: true,
+  };
 }
 
 function formatScriptError(error: unknown, mode: string): ToolResult {
@@ -1747,7 +1734,7 @@ const FEATURE_PLUGINS: Record<string, { plugins: string[]; tables: string[]; des
   },
   aia: {
     plugins: ['com.snc.aia', 'sn_aia', 'com.glide.aia'],
-    tables: ['sys_aia_execution', 'sn_agent_execution'],
+    tables: ['sn_aia_agent', 'sn_aia_execution_plan'],
     description: 'AI Agents (Agentic AI)',
   },
   predictive_intelligence: {

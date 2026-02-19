@@ -3,11 +3,12 @@
  * Handles session management, credential storage, and connection lifecycle
  */
 import * as fs from 'fs/promises';
-import * as path from 'path';
 import { ServiceNowError, ServiceNowErrorType, } from './types.js';
 import { ServiceNowClient } from './client.js';
+import { clearScriptApiCache } from './script-api.js';
+import { CONFIG } from '../shared/config.js';
 // Default credentials file location
-const DEFAULT_CREDENTIALS_PATH = path.join(process.env.HOME || process.env.USERPROFILE || '~', '.servicenow', 'credentials.json');
+const DEFAULT_CREDENTIALS_PATH = CONFIG.servicenowCredentialsPath;
 export class ConnectionManager {
     sessions = new Map();
     clients = new Map();
@@ -221,6 +222,8 @@ export class ConnectionManager {
             const remainingKeys = Array.from(this.sessions.keys());
             this.activeSessionKey = remainingKeys.length > 0 ? remainingKeys[0] : null;
         }
+        // Clear cached script API state for disconnected instances
+        clearScriptApiCache();
         return true;
     }
     /**

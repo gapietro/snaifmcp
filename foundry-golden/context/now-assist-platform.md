@@ -61,6 +61,73 @@ Now Assist is ServiceNow's generative AI capability that brings large language m
 
 Now Assist can be extended with custom skills for domain-specific use cases. See `genai-framework.md` for skill development patterns.
 
+## Now Assist Skill Catalog (Zurich)
+
+ServiceNow Zurich ships with 100+ out-of-box Now Assist skills across workflows:
+
+### Technology Workflows (ITSM)
+- Incident summarization, resolution notes
+- Change risk assessment
+- Problem root cause analysis
+- Knowledge article generation from incidents
+- Alert correlation and grouping
+
+### Customer Workflows (CSM)
+- Case summarization
+- Customer sentiment analysis
+- Response generation
+- Case routing recommendations
+
+### Employee Workflows (HRSD)
+- HR case summarization
+- Policy Q&A
+- Onboarding assistance
+
+### Creator Workflows
+- Code generation assistance
+- Flow Designer assistance
+- App Engine Studio suggestions
+
+### Platform
+- Search enhancement
+- Virtual Agent conversation AI
+- Now Assist Panel interactions
+
+## Now Assist Admin (5-Step Workflow)
+
+Navigation: All > Now Assist Admin
+
+1. **Setup** — Configure LLM provider and connection
+2. **Skills** — Enable/disable skills per application
+3. **Panel** — Configure Now Assist panel appearance and behavior
+4. **Context Menu** — Set up context menu items for Now Assist
+5. **Analytics** — Review usage, quality, and performance metrics
+
+## Key Plugins
+
+| Plugin | API Name | Description |
+|--------|----------|-------------|
+| Now Assist for Platform | `sn_genai_platform` | Base plugin, auto-installed with any Now Assist product |
+| Generative AI Controller | `com.sn.generative.ai` | Central skill execution engine |
+| Now Assist AI Agents | `sn_aia` | AI Agent Studio |
+| MCP Client | `sn_mcp_client` | External MCP server integration |
+| ITSM AI Voice Agents | `sn_itsm_voice_aia` | Voice agents for ITSM |
+| HR Voice AI Agents | `sn_hr_voice_aia` | Voice agents for HR |
+
+## Programmatic Skill Invocation
+
+```javascript
+// Server-side skill invocation via OneExtendUtil
+var request = {
+    capabilityId: 'skill_capability_sys_id',
+    input: {
+        field1: 'value1',
+        field2: 'value2'
+    }
+};
+var result = sn_one_extend.OneExtendUtil.execute(request);
+```
+
 ## API Reference
 
 ### GenAI Controller API

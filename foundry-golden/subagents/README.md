@@ -1,87 +1,163 @@
-# Sub-Agents
+# Sub-Agents — AI Foundry Agent Team
 
-**Status:** Placeholder - Future capability
+**Status:** Active — 6 specialist agents + 1 lead
 
-This directory will contain Claude Code sub-agents for workflow orchestration.
+This directory contains the AI Foundry agent team — a coordinated set of Claude Code sub-agents that work together to build ServiceNow AI solutions end-to-end.
 
-## Purpose
-
-Sub-agents are specialized Claude Code agents that handle specific tasks within a larger workflow. They enable:
-- Parallel execution of independent tasks
-- Specialized expertise for different domains
-- Consistent patterns across projects
-
-## Current Approach
-
-The AI Foundry team currently uses **Superpowers** for workflow orchestration:
+## Architecture
 
 ```
-# Add superpowers to your project
-foundry_external action="add" source="@approved/superpowers"
+Developer
+    │
+    ▼
+┌─────────────────────┐
+│  Solution Architect  │ ◄── Lead agent, dispatches specialists
+│  (orchestrator)      │
+└─────────┬───────────┘
+          │ Dispatches via Task tool
+          ├──────────────┬──────────────┬──────────────┬──────────────┐
+          ▼              ▼              ▼              ▼              ▼
+    ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
+    │   Tool   │  │  Skill   │  │  Agent   │  │ Workflow │  │   QA &   │
+    │ Builder  │  │ Designer │  │Configurer│  │Orchestrtr│  │ Debugger │
+    └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────┘
 ```
 
-Superpowers provides:
-- Design-first workflow with socratic dialogue
-- Subagent-driven development
-- Test-driven development patterns
-- Code review automation
+## Agent Roster
 
-## Future Structure
+| Agent | Role | Context Files | Skills | MCP Tools |
+|-------|------|--------------|--------|-----------|
+| **Solution Architect** | Lead — intake, design, dispatch, validate | 6 | 3 | 4 (read-only) |
+| **Tool Builder** | Script tools with schemas, test, deploy | 4 | 2 | 3 |
+| **Skill Designer** | Now Assist skills with prompts and RAG | 5 | 2 | 3 |
+| **Agent Configurator** | Agent creation, instructions, strategy | 5 | 2 | 4 |
+| **Workflow Orchestrator** | Multi-agent wiring, triggers, handoffs | 4 | 2 | 3 |
+| **QA & Debugger** | End-to-end testing, tracing, diagnosis | 6 | 3 | 7 |
 
-When sub-agents are added, they will follow this structure:
+## Directory Structure
 
 ```
 subagents/
-├── README.md                 # This file
-├── _template/                # Template for new sub-agents
-│   ├── SUBAGENT.md           # Configuration and instructions
-│   └── examples/             # Usage examples
-└── <subagent-name>/          # Actual sub-agents
-    ├── SUBAGENT.md
-    └── examples/
+├── README.md                           # This file
+├── solution-architect/
+│   ├── AGENT.md                        # System prompt, workflow, dispatch logic
+│   └── config.json                     # Context refs, skill refs, MCP tool list
+├── tool-builder/
+│   ├── AGENT.md
+│   └── config.json
+├── skill-designer/
+│   ├── AGENT.md
+│   └── config.json
+├── agent-configurator/
+│   ├── AGENT.md
+│   └── config.json
+├── workflow-orchestrator/
+│   ├── AGENT.md
+│   └── config.json
+└── qa-debugger/
+    ├── AGENT.md
+    └── config.json
 ```
 
-### SUBAGENT.md Format
+## How It Works
 
-```markdown
-# Sub-Agent Name
+### 1. Developer Describes a Use Case
 
-## Purpose
-What this sub-agent specializes in.
+The developer talks to the **Solution Architect** agent. Example:
 
-## Tools
-What tools it has access to (Read, Write, Bash, etc.)
+> "Build an agent that triages incoming P1 incidents — categorize them, set priority, and assign to the right group."
 
-## Instructions
-Detailed instructions for the sub-agent's behavior.
+### 2. Solution Architect Designs and Dispatches
 
-## Examples
-How to invoke and what to expect.
+The architect:
+1. Asks clarifying questions (what data, who uses it, success criteria)
+2. Queries the instance for existing agents/skills
+3. Produces a solution spec
+4. Gets developer approval
+5. Dispatches to specialists:
+   - **Tool Builder** → creates `get_incident_details`, `update_incident`, `search_knowledge`
+   - **Agent Configurator** → creates the triage agent with instructions
+   - **QA & Debugger** → tests everything end-to-end
+
+### 3. Specialists Build
+
+Each specialist follows their domain-specific skill:
+- Tool Builder follows `tool-script-writer`
+- Skill Designer follows `now-assist-skill-builder`
+- Agent Configurator follows `agent-prompt-writer`
+- QA & Debugger follows `iterative-test-fix`
+
+### 4. QA Validates
+
+The QA & Debugger runs test cases, traces failures, categorizes root causes, and dispatches fixes back to the right specialist.
+
+### 5. Architect Reports
+
+Once all tests pass, the Solution Architect compiles a build report for the developer.
+
+## Configuration Format
+
+### AGENT.md
+
+Each agent's AGENT.md contains:
+- **Role** — What the agent does and doesn't do
+- **Boundaries** — Explicit scope limits
+- **Context to Read First** — Context files loaded at session start
+- **Skills to Follow** — Skills that guide the workflow
+- **Available MCP Tools** — Tools with when-to-use guidance
+- **Workflow** — Step-by-step procedure
+- **Output Format** — Exactly what to return
+
+### config.json
+
+```json
+{
+  "name": "agent-name",
+  "description": "One-line purpose",
+  "role": "lead | specialist",
+  "context": ["context-file-1", "context-file-2"],
+  "skills": ["skill-1", "skill-2"],
+  "mcpTools": ["tool_1", "tool_2"],
+  "outputFormat": "report-type"
+}
 ```
 
-## Planned Sub-Agents
+## Dependencies
 
-*These are future capabilities, not yet implemented:*
+These agents depend on content from the golden repository:
 
-| Sub-Agent | Purpose |
-|-----------|---------|
-| `code-reviewer` | Review code changes for quality and patterns |
-| `security-reviewer` | Check for security vulnerabilities |
-| `servicenow-validator` | Validate ServiceNow artifacts |
-| `documentation-writer` | Generate documentation from code |
+### Context Files Required
+- `servicenow-ai-data-model.md`
+- `agentic-patterns.md`
+- `prompt-engineering-patterns.md`
+- `tool-script-rules.md`
+- `tool-script-cookbook.md`
+- `agent-instruction-templates.md`
+- `iterative-development-workflow.md`
+- `flow-designer-for-ai.md`
+- `customer-interaction-patterns.md`
+- `multi-agent-handoff-patterns.md`
+- `data-kit-retrieval-patterns.md`
+- `genai-framework.md`
+- `now-assist-platform.md`
+- `security-patterns.md`
+- `troubleshooting-guide.md`
+- `now-assist-guardian-governance.md`
 
-## Contributing
-
-When ready to add sub-agents:
-
-1. Create directory following the structure above
-2. Define clear purpose and boundaries
-3. Include working examples
-4. Test with real workflows
-5. Document integration patterns
+### Skills Required
+- `solution-design`
+- `tool-script-writer`
+- `agent-prompt-writer`
+- `iterative-test-fix`
+- `now-assist-skill-builder`
+- `servicenow-agent-builder`
+- `agentic-workflow-builder`
+- `testing-patterns`
+- `servicenow-troubleshooting`
+- `servicenow-ai-evaluation`
 
 ## See Also
 
-- [Superpowers](https://github.com/obra/superpowers) - Current workflow framework
-- [foundry-resource-types.md](../../docs/archive/foundry-resource-types.md) - Full specification
-- [Skills directory](../skills/) - Reusable Claude Code skills
+- [Context files](../context/) — Domain knowledge loaded by agents
+- [Skills](../skills/) — Workflow skills followed by agents
+- [Superpowers](https://github.com/obra/superpowers) — General-purpose workflow framework

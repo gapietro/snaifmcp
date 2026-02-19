@@ -1,0 +1,22 @@
+{
+  "name": "skill-designer",
+  "description": "Creates Now Assist skills — prompt templates, schemas, 8-table API registration, and GenAI Controller testing",
+  "role": "specialist",
+  "context": [
+    "genai-framework",
+    "now-assist-platform",
+    "prompt-engineering-patterns",
+    "data-kit-retrieval-patterns",
+    "servicenow-ai-data-model"
+  ],
+  "skills": [
+    "now-assist-skill-builder",
+    "testing-patterns"
+  ],
+  "mcpTools": [
+    "servicenow_skill_create",
+    "servicenow_skill_execute",
+    "servicenow_query"
+  ],
+  "outputFormat": "skill-deployment-report"
+}

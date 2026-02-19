@@ -502,3 +502,104 @@ describe('IncidentAgent', function() {
 - Begin with narrow, well-defined tasks
 - Expand scope gradually as confidence grows
 - Always have a human-in-the-loop option
+
+---
+
+## ServiceNow Zurich: Agentic Workflow Architecture
+
+In Zurich, ServiceNow formalizes agentic patterns through **Agentic Workflows** — managed multi-agent orchestrations.
+
+### Architecture
+
+```
+Agentic Workflow (sn_aia_usecase)
+    └── Orchestrator Agent (sn_aia_agent)
+            ├── Child Agent 1 (sn_aia_agent)
+            │       ├── Tool A
+            │       └── Tool B
+            ├── Child Agent 2 (sn_aia_agent)
+            │       └── Tool C
+            └── Direct Tools
+                    └── Tool D
+```
+
+The orchestrator uses **ReAct prompting** to decide which child agent or tool to invoke at each step.
+
+### Trigger Types
+
+| Trigger | Description | Table Config |
+|---------|-------------|-------------|
+| **Record** | Fires when a record matches conditions | Target table + filter conditions |
+| **Scheduled** | Runs on a schedule | Cron expression, max records per run (default: 10) |
+| **Chat** | User conversation via Virtual Agent | No table config needed |
+| **API** | Programmatic invocation | Via `sn_aia.AiAgentRuntimeUtil` |
+
+### Execution Plan Lifecycle
+
+```
+New → Running → [Tool Execution...] → Completed/Failed
+```
+
+States: `new`, `running`, `completed`, `failed`, `cancelled`
+
+Run types: `API`, `Chat`, `Evaluation`, `Testing`, `Trigger`
+
+### Memory Architecture
+
+**Short-term memory** (`sn_aia.context_sharing_strategy`):
+- `summarise` (default) — Summarizes previous context for next execution
+- Persists within a single conversation
+- Controlled by `sn_aia.allow_context_sharing`
+
+**Long-term memory** (when enabled):
+- Stores user preferences and patterns across conversations
+- Auto-creates categories if `sn_aia.ltm.category.auto_create = true`
+- Enable with `sn_aia.ltm.enable_long_term_memory = true`
+
+### Follow-up Conversations
+
+After execution completes:
+- Default message: "How else can I help you?" (`sn_aia.follow_up_message`)
+- Configurable per workflow via `follow_up_behaviour` property
+- Exit after consecutive failures: `sn_aia.follow_up_qna_failure_limit` (default: 1)
+
+### Programmatic Execution
+
+```javascript
+var runtime = new sn_aia.AiAgentRuntimeUtil();
+var req = {
+    targetRecordId: recordSysId,
+    targetTable: 'incident',
+    agentId: agentSysId,
+    objective: 'Analyze and categorize this incident',
+    conversationUser: gs.getUserName(),
+    canInteractWithUser: false  // FALSE for automation
+};
+var resp = runtime.startAiAgentConversation(req);
+```
+
+### Recursive Execution Protection
+
+ServiceNow prevents infinite loops:
+- **Create operations**: Max 50 matching executions within 15 minutes
+- **Update operations**: Max 5 matching executions within 15 minutes
+- Exceeding limits causes new executions to abort
+
+### Analytics
+
+Dashboard: All > AI Agent Studio > Analytics
+
+Key metrics:
+- Conversations with AI agent assist
+- Average time to close tasks (with/without AI)
+- Efficiency gain percentage
+- Tasks closed using AI agents
+- Inferred CSAT (1-5 scale)
+- User effort (Low/Medium/High)
+
+**Data collection jobs** (run in order):
+1. `[Now Assist AI Agents] Historical Data Collection` — initial data
+2. `[Now Assist AI Agents] Daily Data Collection`
+3. `[Now Assist AI Agents] Periodic Data Collection`
+
+Note: Latency indicators update every 15 minutes; other indicators update daily.
