@@ -18,7 +18,7 @@ gh auth login
 ### 2. Build the MCP Server (if needed)
 
 ```bash
-cd /Users/gpietro/projects/snaifmcp/foundry-mcp
+cd /Users/greg.pietro/projects/snaifmcp/foundry-mcp
 npm install
 npm run build
 ```
@@ -26,9 +26,9 @@ npm run build
 ### 3. Run Tests to Verify Everything Works
 
 ```bash
-cd /Users/gpietro/projects/snaifmcp/foundry-mcp
+cd /Users/greg.pietro/projects/snaifmcp/foundry-mcp
 npm test
-# Should show: Passed: 48/48
+# Should show: Passed: 55/55
 ```
 
 ### 4. Create Demo Directory
@@ -409,20 +409,20 @@ Check if there are any updates available for my project resources
 ```bash
 gh auth status
 gh auth login
-gh repo view gapietro/foundry-golden
+gh repo view Now-AI-Foundry/foundry-golden
 ```
 
 ### MCP Server Not Found
 
 ```bash
-ls -la /Users/gpietro/projects/snaifmcp/foundry-mcp/dist/index.js
-cd /Users/gpietro/projects/snaifmcp/foundry-mcp && npm run build
+ls -la /Users/greg.pietro/projects/snaifmcp/foundry-mcp/dist/index.js
+cd /Users/greg.pietro/projects/snaifmcp/foundry-mcp && npm run build
 ```
 
 ### Use Local Golden Repo
 
 ```
-Create a POC using goldenPath /Users/gpietro/projects/snaifmcp/foundry-golden
+Create a POC using goldenPath /Users/greg.pietro/projects/snaifmcp/foundry-golden
 ```
 
 ### Clear Cache

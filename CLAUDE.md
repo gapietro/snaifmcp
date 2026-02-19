@@ -339,3 +339,32 @@ The developer may explicitly skip steps by saying:
 - **Skipping security review** for hooks, shell commands, or config
 - **Sequential execution** when 3+ tasks could run in parallel
 - **Merging without testing** - "it should work" is not verification
+
+## Claude Code Insights suggestions
+
+### Suggestion CC Additions
+Add under a ## Development Workflow section\n\nWhen running dev servers, always check for and kill existing server processes on the same port before starting new ones. Use `lsof -ti:<port> | xargs kill -9` or equivalent.
+Add under a ## Testing section\n\nAlways run tests from the correct directory (e.g., `cd server && npm test` or `cd client && npm test`). Never run tests from the repo root unless a root-level test script is explicitly configured, as it picks up both client and server tests causing spurious failures.
+Add under a ## Git Workflow section\n\nAlways commit to a feature branch, never directly to main. Before starting work on an issue, verify the current branch with `git branch --show-current` and create/checkout the feature branch if needed.
+Add under a ## Git Workflow section\n\nAfter merging a PR: 1) bump the version, 2) delete the remote and local feature branch, 3) pull latest main. This is the standard post-merge workflow.
+Add under a ## Interaction Style section at the top level\n\nWhen the user is sharing information or providing context, do NOT use AskUserQuestion or interrupt. Wait for the user to finish before responding or asking follow-up questions.
+Add under a ## Tech Stack section\n\nPrimary stack: TypeScript (frontend + backend), CSS, JavaScript. When implementing features, follow existing TypeScript patterns in the codebase. Use JSON for configuration files.
+Add under a ## Debugging section\n\nWhen diagnosing bugs, always verify the root cause at the correct layer before implementing a fix. For WebSocket/streaming issues, check client-side behavior before assuming server-side problems. For API issues, verify the actual request/response format first.
+
+### Batch Issue-to-PR Pipeline
+Work through GitHub issues #X through #Y in order. For each issue: 1) create a feature branch from main, 2) implement the fix with tests, 3) run all tests from the correct subdirectory, 4) create a PR, 5) merge it, 6) bump patch version, 7) delete the feature branch locally and remotely. After all issues are done, summarize what was completed.
+
+### Pre-validate Before Live Debugging
+Before implementing a fix: list all possible root causes for this bug, rank them by likelihood, and explain how you'd verify each one. Then verify the most likely cause before writing any code.
+
+### Leverage Sub-agents for Multi-repo Operations
+Use sub-agents to work through these issues in parallel. Each sub-agent should: create its own feature branch, implement the fix with tests, and create a PR. Then I'll review and merge them in order.
+
+### Parallel Multi-Issue Resolution with Test Gates
+Read all open GitHub issues in this repo. For each issue labeled 'bug' or 'enhancement', create a subagent task that: 1) Creates a git worktree for a new feature branch, 2) Implements the fix following patterns in CLAUDE.md, 3) Runs the full test suite and iterates until all tests pass, 4) Creates a PR with a summary referencing the issue number. Run up to 3 subagents in parallel. After all complete, give me a summary table of each issue, branch, test results, and PR link so I can review and merge.
+
+### Autonomous Code Review to Issue Pipeline
+Perform a comprehensive code review of all files changed in the last 5 merged PRs. For each PR: 1) Check for TypeScript type safety issues, missing error handling, CSS inconsistencies, and deviations from patterns in CLAUDE.md, 2) Rate each finding as critical/important/minor, 3) Create a GitHub issue for each critical or important finding with reproduction steps and a proposed fix approach, 4) For any critical findings, immediately implement the fix on a new branch, run tests, and create a draft PR. Present a final summary of all findings, issues created, and any draft PRs ready for my review.
+
+### Self-Healing Live Session Debug Agent
+I'm experiencing a production issue: [describe symptom]. Before implementing any fix, I need you to run a structured diagnosis: 1) Read the relevant source files and recent git changes related to this area, 2) Generate 3-4 distinct hypotheses for the root cause, 3) For each hypothesis, spawn a subagent that gathers specific evidence — check logs via Bash, inspect network behavior, review config files, and run targeted test cases, 4) Score each hypothesis based on evidence found (confirmed/likely/unlikely/disproven), 5) Present a ranked diagnosis report with evidence for each hypothesis, then implement ONLY the fix for the highest-confidence root cause, 6) Run tests to verify the fix, and also verify that the other hypotheses' failure modes are not present. Do not skip the multi-hypothesis step — the goal is to avoid fixing the wrong thing.

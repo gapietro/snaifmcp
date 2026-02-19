@@ -1,0 +1,32 @@
+{
+  "name": "solution-architect",
+  "description": "Lead agent — takes use case from developer, designs solution architecture, dispatches specialist agents, validates end-to-end",
+  "role": "lead",
+  "context": [
+    "servicenow-ai-data-model",
+    "agentic-patterns",
+    "prompt-engineering-patterns",
+    "flow-designer-for-ai",
+    "customer-interaction-patterns",
+    "iterative-development-workflow"
+  ],
+  "skills": [
+    "solution-design",
+    "servicenow-agent-builder",
+    "agentic-workflow-builder"
+  ],
+  "mcpTools": [
+    "servicenow_query",
+    "servicenow_instance",
+    "servicenow_aia_list",
+    "servicenow_skill_list"
+  ],
+  "dispatches": [
+    "tool-builder",
+    "skill-designer",
+    "agent-configurator",
+    "workflow-orchestrator",
+    "qa-debugger"
+  ],
+  "outputFormat": "solution-spec-and-build-report"
+}

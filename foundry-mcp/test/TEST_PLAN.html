@@ -1,0 +1,2005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foundry MCP Server — Complete Test Plan</title>
+<style>
+  :root {
+    --bg: #f8f9fa;
+    --card: #ffffff;
+    --border: #dee2e6;
+    --text: #212529;
+    --muted: #6c757d;
+    --accent: #0d6efd;
+    --green: #198754;
+    --red: #dc3545;
+    --yellow: #ffc107;
+    --orange: #fd7e14;
+    --cyan: #0dcaf0;
+    --purple: #6f42c1;
+    --teal: #20c997;
+    --pink: #d63384;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  /* Header */
+  .header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; padding: 3rem 0; margin-bottom: 2rem; }
+  .header .container { display: flex; justify-content: space-between; align-items: flex-end; }
+  .header h1 { font-size: 2rem; font-weight: 700; }
+  .header .subtitle { color: #a0aec0; font-size: 1.1rem; margin-top: 0.25rem; }
+  .header .meta { text-align: right; color: #a0aec0; font-size: 0.9rem; }
+  .header .meta strong { color: #fff; }
+  .badge { display: inline-block; padding: 0.2em 0.6em; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+  .badge-version { background: var(--accent); color: #fff; }
+
+  /* TOC */
+  .toc { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem 2rem; margin-bottom: 2rem; }
+  .toc h2 { font-size: 1.1rem; margin-bottom: 1rem; border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; }
+  .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.3rem 2rem; }
+  .toc a { color: var(--accent); text-decoration: none; font-size: 0.9rem; display: block; padding: 0.15rem 0; }
+  .toc a:hover { text-decoration: underline; }
+  .toc .section-label { font-weight: 600; color: var(--text); margin-top: 0.5rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* Sections */
+  section { margin-bottom: 2.5rem; }
+  section > h2 { font-size: 1.4rem; font-weight: 700; border-bottom: 3px solid var(--accent); padding-bottom: 0.5rem; margin-bottom: 1rem; }
+  section > h3 { font-size: 1.15rem; font-weight: 600; margin: 1.5rem 0 0.75rem; color: var(--accent); }
+
+  /* Cards */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+  .card h4 { font-size: 1rem; margin-bottom: 0.5rem; }
+
+  /* Summary stats */
+  .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; text-align: center; }
+  .stat .number { font-size: 2rem; font-weight: 700; color: var(--accent); }
+  .stat .label { font-size: 0.85rem; color: var(--muted); margin-top: 0.25rem; }
+
+  /* Phase badges */
+  .phase { display: inline-block; padding: 0.15em 0.5em; border-radius: 3px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-right: 0.4rem; vertical-align: middle; }
+  .phase-offline { background: #e8f5e9; color: #2e7d32; }
+  .phase-mock { background: #fff3e0; color: #e65100; }
+  .phase-live { background: #fce4ec; color: #c62828; }
+  .phase-security { background: #f3e5f5; color: #6a1b9a; }
+  .phase-e2e { background: #e3f2fd; color: #1565c0; }
+
+  /* Priority */
+  .priority { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 0.4rem; vertical-align: middle; }
+  .priority-p0 { background: var(--red); }
+  .priority-p1 { background: var(--orange); }
+  .priority-p2 { background: var(--yellow); }
+  .priority-p3 { background: var(--cyan); }
+
+  /* Test table */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 0.88rem; }
+  th, td { padding: 0.6rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: #f1f3f5; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); position: sticky; top: 0; }
+  tr:hover td { background: #f8f9fa; }
+  td:first-child { white-space: nowrap; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.82rem; color: var(--muted); }
+  .col-result { width: 80px; text-align: center; }
+  .col-id { width: 90px; }
+  .col-pri { width: 30px; }
+
+  /* Result checkboxes */
+  .result-cell { text-align: center; }
+  .result-cell input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+
+  /* Code */
+  code { background: #e9ecef; padding: 0.15em 0.4em; border-radius: 3px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85em; }
+  pre { background: #1e1e1e; color: #d4d4d4; padding: 1rem 1.25rem; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; margin: 0.75rem 0; }
+  pre code { background: none; padding: 0; color: inherit; }
+
+  /* Environment table */
+  .env-table td:first-child { font-weight: 600; width: 180px; white-space: nowrap; }
+
+  /* Notes */
+  .note { background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 0.75rem 1rem; margin: 0.75rem 0; font-size: 0.9rem; }
+  .note-info { background: #cff4fc; border-color: #0dcaf0; }
+  .note-danger { background: #f8d7da; border-color: #dc3545; }
+  .note strong { display: block; margin-bottom: 0.2rem; }
+
+  /* Print */
+  @media print {
+    .header { background: #1a1a2e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none; }
+    section { break-inside: avoid; }
+    table { font-size: 0.78rem; }
+  }
+
+  /* Collapsible */
+  details { margin-bottom: 0.5rem; }
+  details summary { cursor: pointer; font-weight: 600; padding: 0.5rem 0; }
+  details summary:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════ HEADER ═══════════════════════ -->
+<div class="header">
+  <div class="container">
+    <div>
+      <h1>Foundry MCP Server</h1>
+      <div class="subtitle">Complete Test Plan &mdash; All 30 Tools, Start to Finish</div>
+    </div>
+    <div class="meta">
+      <div><strong>Version:</strong> <span class="badge badge-version">2026.02.1303</span></div>
+      <div><strong>Date:</strong> 2026-02-13</div>
+      <div><strong>Author:</strong> AI Foundry Team</div>
+      <div><strong>Status:</strong> Active</div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ═══════════════════════ STATS ═══════════════════════ -->
+<div class="stats">
+  <div class="stat"><div class="number">30</div><div class="label">MCP Tools</div></div>
+  <div class="stat"><div class="number">152</div><div class="label">Automated Tests</div></div>
+  <div class="stat"><div class="number">187</div><div class="label">Manual Test Cases</div></div>
+  <div class="stat"><div class="number">8</div><div class="label">Test Phases</div></div>
+  <div class="stat"><div class="number">4</div><div class="label">Test Suites</div></div>
+</div>
+
+<!-- ═══════════════════════ TOC ═══════════════════════ -->
+<div class="toc">
+  <h2>Table of Contents</h2>
+  <div class="toc-grid">
+    <div>
+      <div class="section-label">Setup &amp; Overview</div>
+      <a href="#scope">1. Scope &amp; Objectives</a>
+      <a href="#environments">2. Test Environments</a>
+      <a href="#prerequisites">3. Prerequisites</a>
+      <a href="#automated">4. Automated Test Suites</a>
+    </div>
+    <div>
+      <div class="section-label">Foundry Tools (12)</div>
+      <a href="#tp-foundry-init">5. foundry_init</a>
+      <a href="#tp-foundry-lifecycle">6. foundry list/add/sync/info/search</a>
+      <a href="#tp-foundry-contrib">7. foundry new/validate/promote</a>
+      <a href="#tp-foundry-misc">8. foundry external/version/templates</a>
+    </div>
+    <div>
+      <div class="section-label">ServiceNow Core (8)</div>
+      <a href="#tp-sn-connect">9. servicenow connect/disconnect/status</a>
+      <a href="#tp-sn-query">10. servicenow query/syslogs/aia_logs</a>
+      <a href="#tp-sn-script">11. servicenow script</a>
+      <a href="#tp-sn-instance">12. servicenow instance</a>
+    </div>
+    <div>
+      <div class="section-label">AI Agent &amp; Skill Tools (10)</div>
+      <a href="#tp-aia-read">13. AIA list/get/trace/errors</a>
+      <a href="#tp-aia-exec">14. AIA execute/create</a>
+      <a href="#tp-skill-read">15. Skill list/get</a>
+      <a href="#tp-skill-exec">16. Skill execute/create</a>
+    </div>
+    <div>
+      <div class="section-label">Cross-Cutting</div>
+      <a href="#tp-security">17. Security Tests</a>
+      <a href="#tp-e2e">18. End-to-End Workflows</a>
+      <a href="#tp-perf">19. Performance &amp; Limits</a>
+      <a href="#tp-mcp-protocol">20. MCP Protocol Compliance</a>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ 1. SCOPE ═══════════════════════ -->
+<section id="scope">
+  <h2>1. Scope &amp; Objectives</h2>
+  <div class="card">
+    <h4>In Scope</h4>
+    <ul>
+      <li><strong>12 Foundry tools</strong> &mdash; project bootstrap, resource management, contribution workflow</li>
+      <li><strong>8 ServiceNow core tools</strong> &mdash; instance connectivity, querying, scripting</li>
+      <li><strong>6 AI Agent tools</strong> &mdash; list, get, trace, errors, execute, create</li>
+      <li><strong>4 Now Assist Skill tools</strong> &mdash; list, get, execute, create</li>
+      <li><strong>Shared infrastructure</strong> &mdash; connection guards, table discovery, client CRUD, error types</li>
+      <li><strong>MCP protocol</strong> &mdash; stdio transport, NDJSON, initialize handshake, tool listing, tool dispatch</li>
+      <li><strong>Security</strong> &mdash; script injection, query injection, credential handling</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Out of Scope</h4>
+    <ul>
+      <li>Claude Code IDE integration (handled by MCP SDK)</li>
+      <li>Golden repo CI/CD (separate repo with its own tests)</li>
+      <li>ServiceNow platform bugs (we test our tools, not the platform)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Test Phases</h4>
+    <table>
+      <tr><td><span class="phase phase-offline">Offline</span></td><td>No network needed. Tests tool definitions, schemas, guards, file operations. Fully automated.</td></tr>
+      <tr><td><span class="phase phase-mock">Mock</span></td><td>Uses mock HTTP responses or simulated golden repo. No live instance needed.</td></tr>
+      <tr><td><span class="phase phase-live">Live</span></td><td>Requires a real ServiceNow dev/test instance. Manual or semi-automated.</td></tr>
+      <tr><td><span class="phase phase-security">Security</span></td><td>Validates input sanitization, injection prevention, credential safety.</td></tr>
+      <tr><td><span class="phase phase-e2e">E2E</span></td><td>Multi-tool workflows exercising real-world usage patterns.</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Priority Legend</h4>
+    <table>
+      <tr><td><span class="priority priority-p0"></span> <strong>P0 &mdash; Blocker</strong></td><td>Must pass before any release. Broken = server won't work.</td></tr>
+      <tr><td><span class="priority priority-p1"></span> <strong>P1 &mdash; Critical</strong></td><td>Core functionality. Must pass for the tool to be usable.</td></tr>
+      <tr><td><span class="priority priority-p2"></span> <strong>P2 &mdash; Important</strong></td><td>Edge cases and validation. Should pass but won't block release.</td></tr>
+      <tr><td><span class="priority priority-p3"></span> <strong>P3 &mdash; Nice to have</strong></td><td>Performance, cosmetic, informational.</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 2. ENVIRONMENTS ═══════════════════════ -->
+<section id="environments">
+  <h2>2. Test Environments</h2>
+  <div class="card">
+    <h4>Local Development</h4>
+    <table class="env-table">
+      <tr><td>Node.js</td><td>18+ (LTS recommended)</td></tr>
+      <tr><td>OS</td><td>macOS / Linux / WSL2</td></tr>
+      <tr><td>GitHub CLI</td><td><code>gh</code> authenticated (<code>gh auth login</code>)</td></tr>
+      <tr><td>Golden Repo</td><td>Cloned as sibling: <code>../foundry-golden/</code></td></tr>
+      <tr><td>Build</td><td><code>npm install &amp;&amp; npm run build</code></td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>ServiceNow Test Instance (for Live tests)</h4>
+    <table class="env-table">
+      <tr><td>Instance</td><td>PDI or dev instance (e.g., <code>dev12345.service-now.com</code>)</td></tr>
+      <tr><td>Version</td><td>Vancouver / Washington / Xanadu</td></tr>
+      <tr><td>Auth</td><td>Basic auth with admin credentials</td></tr>
+      <tr><td>Plugins</td><td>AI Agent Framework, Now Assist, GenAI Controller</td></tr>
+      <tr><td>Test Data</td><td>At least 1 AI Agent with tools, 1 Now Assist Skill</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 3. PREREQUISITES ═══════════════════════ -->
+<section id="prerequisites">
+  <h2>3. Prerequisites</h2>
+  <div class="card">
+    <h4>Before Running Any Tests</h4>
+    <pre><code># 1. Clone and build
+cd foundry-mcp
+npm install
+npm run build
+
+# 2. Verify golden repo is available
+ls ../foundry-golden/context/ ../foundry-golden/skills/
+
+# 3. Verify GitHub CLI (for promote tests)
+gh auth status
+
+# 4. (Live tests only) Set ServiceNow credentials
+export SN_INSTANCE="dev12345.service-now.com"
+export SN_USERNAME="admin"
+export SN_PASSWORD="your-password"</code></pre>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 4. AUTOMATED SUITES ═══════════════════════ -->
+<section id="automated">
+  <h2>4. Automated Test Suites (152 tests)</h2>
+  <div class="card">
+    <h4>Run All Tests</h4>
+    <pre><code>npm run test:all</code></pre>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Suite</th>
+        <th>Command</th>
+        <th>Tests</th>
+        <th>Coverage</th>
+        <th class="col-result">Pass</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>validate-init</code></td>
+        <td><code>npm test</code></td>
+        <td>55</td>
+        <td>Foundry tools: init, list, add, sync, info, search, new, validate, promote, external, version, templates</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td><code>validate-servicenow</code></td>
+        <td><code>npm run test:servicenow</code></td>
+        <td>65</td>
+        <td>All 18 SN tool definitions, schemas, guards, handlers (no-connection), URL normalization, error types, table discovery</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td><code>test-exec-utils</code></td>
+        <td><code>npm run test:exec</code></td>
+        <td>22</td>
+        <td>Safe exec (spawn), shell metacharacter rejection, resource name validation, timeout handling</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td><code>mcp-integration</code></td>
+        <td><code>npm run test:mcp</code></td>
+        <td>10</td>
+        <td>MCP stdio server: initialize handshake, tools/list (30 tools), servicenow_status, foundry_init over NDJSON</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="note note-info">
+    <strong>Note:</strong> All 152 automated tests run offline with no ServiceNow instance required. They validate tool definitions, parameter schemas, guard logic, and file-system operations against a real golden repo clone.
+  </div>
+</section>
+
+<!-- ═══════════════════════ 5. FOUNDRY INIT ═══════════════════════ -->
+<section id="tp-foundry-init">
+  <h2>5. foundry_init</h2>
+  <p>Creates a new project pre-loaded with context, skills, and a CLAUDE.md from the golden repo.</p>
+  <table>
+    <thead>
+      <tr>
+        <th class="col-id">ID</th>
+        <th class="col-pri"></th>
+        <th>Test Case</th>
+        <th>Steps</th>
+        <th>Expected Result</th>
+        <th class="col-result">Pass</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>FI-001</td>
+        <td><span class="priority priority-p0"></span></td>
+        <td>Create project with default template</td>
+        <td>Call <code>foundry_init</code> with <code>projectName: "test-project"</code></td>
+        <td>Project directory created with CLAUDE.md, .claude/context/, .claude/skills/, .gitignore</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FI-002</td>
+        <td><span class="priority priority-p0"></span></td>
+        <td>CLAUDE.md contains SPARC methodology</td>
+        <td>Read generated CLAUDE.md</td>
+        <td>Contains "SPARC" and the project name in the header</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FI-003</td>
+        <td><span class="priority priority-p0"></span></td>
+        <td>Context files populated</td>
+        <td>List files in <code>.claude/context/</code></td>
+        <td>Contains now-assist-platform.md, servicenow-ai-data-model.md, tool-script-rules.md, and others</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FI-004</td>
+        <td><span class="priority priority-p0"></span></td>
+        <td>Skills populated</td>
+        <td>List files in <code>.claude/skills/</code></td>
+        <td>Contains servicenow-agent-builder/, now-assist-skill-builder/, and others with SKILL.md + examples/</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FI-005</td>
+        <td><span class="priority priority-p1"></span></td>
+        <td>Custom path parameter</td>
+        <td>Call with <code>path: "/tmp/custom-path"</code></td>
+        <td>Project created at specified path instead of cwd</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FI-006</td>
+        <td><span class="priority priority-p1"></span></td>
+        <td>Template: minimal</td>
+        <td>Call with <code>template: "minimal"</code></td>
+        <td>Project created with CLAUDE.md but no pre-loaded context/skills</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FI-007</td>
+        <td><span class="priority priority-p1"></span></td>
+        <td>Template: standard</td>
+        <td>Call with <code>template: "standard"</code></td>
+        <td>Project created with context files but no skills</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FI-008</td>
+        <td><span class="priority priority-p1"></span></td>
+        <td>Duplicate project name rejected</td>
+        <td>Call foundry_init twice with same name</td>
+        <td>Second call returns <code>isError: true</code> with "already exists"</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FI-009</td>
+        <td><span class="priority priority-p2"></span></td>
+        <td>Invalid project name rejected</td>
+        <td>Call with <code>projectName: "My Project!"</code></td>
+        <td>Returns error: names must be lowercase with hyphens/underscores only</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FI-010</td>
+        <td><span class="priority priority-p2"></span></td>
+        <td>Missing projectName rejected</td>
+        <td>Call with empty arguments</td>
+        <td>Returns error: projectName is required</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FI-011</td>
+        <td><span class="priority priority-p1"></span></td>
+        <td>goldenPath override works</td>
+        <td>Call with <code>goldenPath</code> pointing to local golden repo</td>
+        <td>Uses local path instead of GitHub clone/cache</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FI-012</td>
+        <td><span class="priority priority-p2"></span></td>
+        <td>Golden repo cache behavior</td>
+        <td>Run init twice, check <code>~/.foundry/golden/</code></td>
+        <td>First run clones; second run reuses cache (fast)</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════ 6. FOUNDRY LIFECYCLE ═══════════════════════ -->
+<section id="tp-foundry-lifecycle">
+  <h2>6. foundry_list / foundry_add / foundry_sync / foundry_info / foundry_search</h2>
+  <table>
+    <thead>
+      <tr><th class="col-id">ID</th><th class="col-pri"></th><th>Test Case</th><th>Steps</th><th>Expected Result</th><th class="col-result">Pass</th></tr>
+    </thead>
+    <tbody>
+      <!-- LIST -->
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">foundry_list</td></tr>
+      <tr>
+        <td>FL-001</td><td><span class="priority priority-p0"></span></td>
+        <td>List all resources</td>
+        <td>Call with <code>type: "all"</code></td>
+        <td>Returns context files, skills, and templates grouped by type</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FL-002</td><td><span class="priority priority-p1"></span></td>
+        <td>List context files only</td>
+        <td>Call with <code>type: "context"</code></td>
+        <td>Returns 9 context files including servicenow-ai-data-model.md, tool-script-rules.md</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FL-003</td><td><span class="priority priority-p1"></span></td>
+        <td>List skills only</td>
+        <td>Call with <code>type: "skills"</code></td>
+        <td>Returns 6 skills including servicenow-agent-builder</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FL-004</td><td><span class="priority priority-p1"></span></td>
+        <td>List templates</td>
+        <td>Call with <code>type: "templates"</code></td>
+        <td>Returns sparc-starter, minimal, standard</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FL-005</td><td><span class="priority priority-p2"></span></td>
+        <td>Verbose mode</td>
+        <td>Call with <code>verbose: true</code></td>
+        <td>Includes descriptions and file sizes</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <!-- ADD -->
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">foundry_add</td></tr>
+      <tr>
+        <td>FA-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Add context file to project</td>
+        <td>Init project, then call <code>foundry_add type: "context", name: "agentic-patterns"</code></td>
+        <td>File copied to <code>.claude/context/agentic-patterns.md</code></td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FA-002</td><td><span class="priority priority-p0"></span></td>
+        <td>Add skill to project</td>
+        <td>Call <code>foundry_add type: "skill", name: "testing-patterns"</code></td>
+        <td>Skill directory copied with SKILL.md and examples/</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FA-003</td><td><span class="priority priority-p1"></span></td>
+        <td>Duplicate detection</td>
+        <td>Add same resource twice without <code>force</code></td>
+        <td>Second call warns "already exists", no overwrite</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FA-004</td><td><span class="priority priority-p1"></span></td>
+        <td>Force overwrite</td>
+        <td>Add same resource with <code>force: true</code></td>
+        <td>Resource overwritten successfully</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FA-005</td><td><span class="priority priority-p2"></span></td>
+        <td>Non-existent resource</td>
+        <td>Call with <code>name: "does-not-exist"</code></td>
+        <td>Returns error: resource not found in golden repo</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <!-- SYNC -->
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">foundry_sync</td></tr>
+      <tr>
+        <td>FS-001</td><td><span class="priority priority-p1"></span></td>
+        <td>Dry-run shows diff</td>
+        <td>Modify a project file, call <code>foundry_sync dryRun: true</code></td>
+        <td>Reports which files are modified, unchanged, or new — no files changed</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FS-002</td><td><span class="priority priority-p1"></span></td>
+        <td>Sync applies updates</td>
+        <td>Call <code>foundry_sync dryRun: false</code></td>
+        <td>Modified files updated to match golden repo</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FS-003</td><td><span class="priority priority-p2"></span></td>
+        <td>Sync by type filter</td>
+        <td>Call with <code>type: "context"</code></td>
+        <td>Only context files synced, skills untouched</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <!-- INFO -->
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">foundry_info</td></tr>
+      <tr>
+        <td>FN-001</td><td><span class="priority priority-p1"></span></td>
+        <td>Info for context file</td>
+        <td>Call with <code>type: "context", name: "servicenow-ai-data-model"</code></td>
+        <td>Returns title, word count, content summary</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FN-002</td><td><span class="priority priority-p1"></span></td>
+        <td>Info for skill</td>
+        <td>Call with <code>type: "skill", name: "servicenow-agent-builder"</code></td>
+        <td>Returns title, description, examples list</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FN-003</td><td><span class="priority priority-p1"></span></td>
+        <td>Info for template</td>
+        <td>Call with <code>type: "template", name: "sparc-starter"</code></td>
+        <td>Returns included context and skills, structure preview</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <!-- SEARCH -->
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">foundry_search</td></tr>
+      <tr>
+        <td>FQ-001</td><td><span class="priority priority-p1"></span></td>
+        <td>Search by name</td>
+        <td>Call with <code>query: "agent"</code></td>
+        <td>Returns servicenow-agent-builder skill, agentic-patterns context, ranked by relevance</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FQ-002</td><td><span class="priority priority-p1"></span></td>
+        <td>Search by content</td>
+        <td>Call with <code>query: "GlideRecord"</code></td>
+        <td>Returns resources containing GlideRecord in their content</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FQ-003</td><td><span class="priority priority-p2"></span></td>
+        <td>Search with type filter</td>
+        <td>Call with <code>query: "API", type: "context"</code></td>
+        <td>Only context files returned, no skills</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FQ-004</td><td><span class="priority priority-p2"></span></td>
+        <td>Name matches rank higher than content</td>
+        <td>Search for term that appears in both names and content</td>
+        <td>Name matches (score 10) appear before content matches (score 5)</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FQ-005</td><td><span class="priority priority-p3"></span></td>
+        <td>No results</td>
+        <td>Search for <code>query: "xyznonexistent123"</code></td>
+        <td>Returns empty results with helpful message</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════ 7. FOUNDRY CONTRIB ═══════════════════════ -->
+<section id="tp-foundry-contrib">
+  <h2>7. foundry_new / foundry_validate / foundry_promote</h2>
+  <table>
+    <thead>
+      <tr><th class="col-id">ID</th><th class="col-pri"></th><th>Test Case</th><th>Steps</th><th>Expected Result</th><th class="col-result">Pass</th></tr>
+    </thead>
+    <tbody>
+      <!-- NEW -->
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">foundry_new</td></tr>
+      <tr>
+        <td>FW-001</td><td><span class="priority priority-p1"></span></td>
+        <td>Create new context file</td>
+        <td>Call with <code>type: "context", name: "my-custom-context"</code></td>
+        <td>Scaffold file created at <code>.claude/context/my-custom-context.md</code> with template</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FW-002</td><td><span class="priority priority-p1"></span></td>
+        <td>Create new skill</td>
+        <td>Call with <code>type: "skill", name: "my-skill"</code></td>
+        <td>Directory created with SKILL.md and examples/ subdirectory</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FW-003</td><td><span class="priority priority-p2"></span></td>
+        <td>Invalid name rejected</td>
+        <td>Call with <code>name: "My Skill!"</code></td>
+        <td>Error: names must be lowercase with hyphens only</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <!-- VALIDATE -->
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">foundry_validate</td></tr>
+      <tr>
+        <td>FV-001</td><td><span class="priority priority-p1"></span></td>
+        <td>Valid context passes</td>
+        <td>Create context with 100+ words, run validate</td>
+        <td>Passes validation (min 50 words)</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FV-002</td><td><span class="priority priority-p1"></span></td>
+        <td>Short content fails</td>
+        <td>Create context with 10 words, run validate</td>
+        <td>Fails: content too short (below 50-word minimum)</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FV-003</td><td><span class="priority priority-p1"></span></td>
+        <td>Valid skill passes</td>
+        <td>Create skill with SKILL.md and examples/, run validate</td>
+        <td>Passes: has required SKILL.md and examples directory</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FV-004</td><td><span class="priority priority-p2"></span></td>
+        <td>Placeholder content detected</td>
+        <td>Leave template placeholder text in content</td>
+        <td>Warning: placeholder text detected, content appears auto-generated</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <!-- PROMOTE -->
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">foundry_promote</td></tr>
+      <tr>
+        <td>FP-001</td><td><span class="priority priority-p1"></span></td>
+        <td>Promote requires passing validation</td>
+        <td>Try to promote an invalid resource</td>
+        <td>Error: validation must pass before promotion</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FP-002</td><td><span class="priority priority-p1"></span></td>
+        <td>Branch naming convention</td>
+        <td>Inspect the generated branch name</td>
+        <td>Format: <code>foundry/{type}/{name}-{date}</code></td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FP-003</td><td><span class="priority priority-p1"></span></td>
+        <td>PR title format</td>
+        <td>Inspect the generated PR title</td>
+        <td>Format: <code>Add {type}: {name}</code></td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FP-004</td><td><span class="priority priority-p2"></span></td>
+        <td>GitHub CLI check</td>
+        <td>Promote checks for <code>gh</code> availability</td>
+        <td>Clear error if gh CLI not installed/authenticated</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════ 8. FOUNDRY MISC ═══════════════════════ -->
+<section id="tp-foundry-misc">
+  <h2>8. foundry_external / foundry_version / foundry_templates</h2>
+  <table>
+    <thead>
+      <tr><th class="col-id">ID</th><th class="col-pri"></th><th>Test Case</th><th>Steps</th><th>Expected Result</th><th class="col-result">Pass</th></tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">foundry_external</td></tr>
+      <tr>
+        <td>FE-001</td><td><span class="priority priority-p1"></span></td>
+        <td>List external sources</td>
+        <td>Call with <code>action: "list"</code></td>
+        <td>Returns approved external sources from registry</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FE-002</td><td><span class="priority priority-p1"></span></td>
+        <td>Parse @approved source</td>
+        <td>Call with <code>source: "@approved/servicenow-utils"</code></td>
+        <td>Correctly parses namespace and package name</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FE-003</td><td><span class="priority priority-p1"></span></td>
+        <td>Parse @github source</td>
+        <td>Call with <code>source: "@github/owner/repo"</code></td>
+        <td>Correctly parses owner and repo</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FE-004</td><td><span class="priority priority-p2"></span></td>
+        <td>Invalid source rejected</td>
+        <td>Call with <code>source: "no-at-prefix"</code></td>
+        <td>Error: sources must start with @</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">foundry_version</td></tr>
+      <tr>
+        <td>FV2-001</td><td><span class="priority priority-p1"></span></td>
+        <td>Version status</td>
+        <td>Call with <code>action: "status"</code></td>
+        <td>Returns lock file info with resource hashes</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FV2-002</td><td><span class="priority priority-p2"></span></td>
+        <td>Hash consistency</td>
+        <td>Hash same content twice</td>
+        <td>Same content produces identical hash; different content produces different hash</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">foundry_templates</td></tr>
+      <tr>
+        <td>FT-001</td><td><span class="priority priority-p1"></span></td>
+        <td>List templates</td>
+        <td>Call with <code>action: "list"</code></td>
+        <td>Returns sparc-starter, minimal, standard with descriptions</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FT-002</td><td><span class="priority priority-p2"></span></td>
+        <td>Preview template</td>
+        <td>Call with <code>action: "preview", template: "sparc-starter"</code></td>
+        <td>Shows included context files and skills for that template</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>FT-003</td><td><span class="priority priority-p2"></span></td>
+        <td>Invalid template rejected</td>
+        <td>Call with <code>template: "nonexistent"</code></td>
+        <td>Error: template not found</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════ 9. SN CONNECT ═══════════════════════ -->
+<section id="tp-sn-connect">
+  <h2>9. servicenow_connect / disconnect / status</h2>
+  <table>
+    <thead>
+      <tr><th class="col-id">ID</th><th class="col-pri"></th><th>Test Case</th><th>Steps</th><th>Expected Result</th><th class="col-result">Pass</th></tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">servicenow_connect — Offline</td></tr>
+      <tr>
+        <td>SC-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Missing instance rejected</td>
+        <td>Call <code>servicenow_connect</code> with no arguments</td>
+        <td><code>isError: true</code>, message includes "instance is required"</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SC-002</td><td><span class="priority priority-p1"></span></td>
+        <td>URL normalization: bare hostname</td>
+        <td>Connect with <code>instance: "dev12345.service-now.com"</code></td>
+        <td>Normalized to <code>https://dev12345.service-now.com</code></td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SC-003</td><td><span class="priority priority-p1"></span></td>
+        <td>URL normalization: http upgraded</td>
+        <td>Connect with <code>instance: "http://dev12345.service-now.com"</code></td>
+        <td>Upgraded to <code>https://</code></td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SC-004</td><td><span class="priority priority-p1"></span></td>
+        <td>URL normalization: trailing slash removed</td>
+        <td>Connect with <code>instance: "https://dev12345.service-now.com/"</code></td>
+        <td>Trailing slash stripped</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">servicenow_connect — <span class="phase phase-live">Live</span></td></tr>
+      <tr>
+        <td>SC-005</td><td><span class="priority priority-p0"></span></td>
+        <td>Basic auth connection</td>
+        <td>Connect with <code>instance, authType: "basic", username, password</code></td>
+        <td>Successfully connected. Status shows instance URL, user, and session info.</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SC-006</td><td><span class="priority priority-p1"></span></td>
+        <td>Token auth connection</td>
+        <td>Connect with <code>authType: "token", token</code></td>
+        <td>Successfully connected with bearer token</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SC-007</td><td><span class="priority priority-p1"></span></td>
+        <td>Profile-based connection</td>
+        <td>Create <code>~/.servicenow/credentials.json</code> with profile, connect with <code>authType: "profile"</code></td>
+        <td>Reads credentials from file, connects successfully</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SC-008</td><td><span class="priority priority-p1"></span></td>
+        <td>Invalid credentials rejected</td>
+        <td>Connect with wrong password</td>
+        <td><code>isError: true</code>, clear auth failure message with suggestion</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SC-009</td><td><span class="priority priority-p2"></span></td>
+        <td>Unreachable instance</td>
+        <td>Connect to <code>nonexistent.service-now.com</code></td>
+        <td>Timeout or DNS error with clear message</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">servicenow_disconnect</td></tr>
+      <tr>
+        <td>SD-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Disconnect when not connected</td>
+        <td>Call disconnect without prior connect</td>
+        <td>Returns "Not connected" (not an error, just informational)</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SD-002</td><td><span class="priority priority-p1"></span></td>
+        <td>Disconnect active session <span class="phase phase-live">Live</span></td>
+        <td>Connect then disconnect</td>
+        <td>Session cleared. Status shows not connected.</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">servicenow_status</td></tr>
+      <tr>
+        <td>SS-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Status when not connected</td>
+        <td>Call status without connection</td>
+        <td>Returns "Not connected" with instructions to use servicenow_connect</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SS-002</td><td><span class="priority priority-p1"></span></td>
+        <td>Status when connected <span class="phase phase-live">Live</span></td>
+        <td>Connect, then call status</td>
+        <td>Shows instance URL, authenticated user, session duration</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════ 10. SN QUERY ═══════════════════════ -->
+<section id="tp-sn-query">
+  <h2>10. servicenow_query / servicenow_syslogs / servicenow_aia_logs</h2>
+  <table>
+    <thead>
+      <tr><th class="col-id">ID</th><th class="col-pri"></th><th>Test Case</th><th>Steps</th><th>Expected Result</th><th class="col-result">Pass</th></tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">servicenow_query — Offline Guards</td></tr>
+      <tr>
+        <td>SQ-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Query rejects when not connected</td>
+        <td>Call query without connection</td>
+        <td><code>isError: true</code>, "Not connected"</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">servicenow_query — <span class="phase phase-live">Live</span></td></tr>
+      <tr>
+        <td>SQ-002</td><td><span class="priority priority-p0"></span></td>
+        <td>Basic table query</td>
+        <td>Connect, then <code>query table: "incident", limit: 5</code></td>
+        <td>Returns up to 5 incident records with formatted fields</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SQ-003</td><td><span class="priority priority-p1"></span></td>
+        <td>Query with filter</td>
+        <td><code>query table: "incident", query: "active=true^priority=1"</code></td>
+        <td>Returns only active P1 incidents</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SQ-004</td><td><span class="priority priority-p1"></span></td>
+        <td>Query with field selection</td>
+        <td><code>fields: "number,short_description,state"</code></td>
+        <td>Only specified fields returned</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SQ-005</td><td><span class="priority priority-p1"></span></td>
+        <td>Query with ordering</td>
+        <td><code>orderBy: "sys_updated_on", orderDirection: "desc"</code></td>
+        <td>Records sorted by most recently updated</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SQ-006</td><td><span class="priority priority-p2"></span></td>
+        <td>Limit enforcement</td>
+        <td>Set <code>limit: 600</code></td>
+        <td>Clamped to max 500</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SQ-007</td><td><span class="priority priority-p2"></span></td>
+        <td>Non-existent table</td>
+        <td>Query <code>table: "nonexistent_table_xyz"</code></td>
+        <td>Clear error message about table not found</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">servicenow_syslogs — <span class="phase phase-live">Live</span></td></tr>
+      <tr>
+        <td>SL-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Syslogs rejects when not connected</td>
+        <td>Call without connection</td>
+        <td><code>isError: true</code>, "Not connected"</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SL-002</td><td><span class="priority priority-p1"></span></td>
+        <td>Default syslog query</td>
+        <td>Call with defaults</td>
+        <td>Returns recent syslog entries (last 1h, up to 50)</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SL-003</td><td><span class="priority priority-p1"></span></td>
+        <td>Filter by level</td>
+        <td><code>level: "error"</code></td>
+        <td>Only error-level log entries returned</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SL-004</td><td><span class="priority priority-p2"></span></td>
+        <td>Filter by source and time range</td>
+        <td><code>source: "sn_aia", timeRange: "24h"</code></td>
+        <td>Only AI Agent logs from last 24 hours</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">servicenow_aia_logs — <span class="phase phase-live">Live</span></td></tr>
+      <tr>
+        <td>AL-001</td><td><span class="priority priority-p0"></span></td>
+        <td>AIA logs rejects when not connected</td>
+        <td>Call without connection</td>
+        <td><code>isError: true</code>, "Not connected"</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AL-002</td><td><span class="priority priority-p1"></span></td>
+        <td>Default AIA log query</td>
+        <td>Call with defaults</td>
+        <td>Returns recent AI Agent execution log entries</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AL-003</td><td><span class="priority priority-p2"></span></td>
+        <td>Filter by agent name</td>
+        <td><code>agentName: "Incident Triage Agent"</code></td>
+        <td>Only logs for specified agent</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AL-004</td><td><span class="priority priority-p2"></span></td>
+        <td>Include tool calls</td>
+        <td><code>includeToolCalls: true</code></td>
+        <td>Each execution includes tool call details</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════ 11. SN SCRIPT ═══════════════════════ -->
+<section id="tp-sn-script">
+  <h2>11. servicenow_script</h2>
+  <table>
+    <thead>
+      <tr><th class="col-id">ID</th><th class="col-pri"></th><th>Test Case</th><th>Steps</th><th>Expected Result</th><th class="col-result">Pass</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>XS-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Script rejects when not connected</td>
+        <td>Call without connection</td>
+        <td><code>isError: true</code>, "Not connected"</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>XS-002</td><td><span class="priority priority-p0"></span></td>
+        <td>Read-only script execution <span class="phase phase-live">Live</span></td>
+        <td><code>script: "gs.info(new GlideRecord('incident').getRowCount())", mode: "readonly"</code></td>
+        <td>Returns incident count without modifying data</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>XS-003</td><td><span class="priority priority-p1"></span></td>
+        <td>Execute mode <span class="phase phase-live">Live</span></td>
+        <td><code>script: "gs.info('hello')", mode: "execute"</code></td>
+        <td>Script executed, output captured via gs.info transform</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>XS-004</td><td><span class="priority priority-p1"></span></td>
+        <td>Script with description</td>
+        <td>Include <code>description: "Count incidents"</code></td>
+        <td>Description logged for audit trail</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>XS-005</td><td><span class="priority priority-p1"></span></td>
+        <td>Script timeout</td>
+        <td>Set <code>timeout: 5</code> with a slow script</td>
+        <td>Times out after 5 seconds with clear message</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>XS-006</td><td><span class="priority priority-p2"></span></td>
+        <td>Timeout max clamped</td>
+        <td>Set <code>timeout: 999</code></td>
+        <td>Clamped to max 120 seconds</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════ 12. SN INSTANCE ═══════════════════════ -->
+<section id="tp-sn-instance">
+  <h2>12. servicenow_instance</h2>
+  <table>
+    <thead>
+      <tr><th class="col-id">ID</th><th class="col-pri"></th><th>Test Case</th><th>Steps</th><th>Expected Result</th><th class="col-result">Pass</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>SI-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Instance info rejects when not connected</td>
+        <td>Call without connection</td>
+        <td><code>isError: true</code>, "Not connected"</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SI-002</td><td><span class="priority priority-p1"></span></td>
+        <td>Basic instance info <span class="phase phase-live">Live</span></td>
+        <td>Call with defaults</td>
+        <td>Returns instance version, URL, node info</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SI-003</td><td><span class="priority priority-p2"></span></td>
+        <td>Include plugins</td>
+        <td><code>includePlugins: true</code></td>
+        <td>Returns list of active plugins</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SI-004</td><td><span class="priority priority-p2"></span></td>
+        <td>Include health</td>
+        <td><code>includeHealth: true</code></td>
+        <td>Returns health metrics (response time, stats nodes)</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SI-005</td><td><span class="priority priority-p2"></span></td>
+        <td>Check specific features</td>
+        <td><code>checkFeatures: ["com.glide.aia", "com.snc.now_assist"]</code></td>
+        <td>Returns active/inactive status for each requested feature</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════ 13. AIA READ ═══════════════════════ -->
+<section id="tp-aia-read">
+  <h2>13. servicenow_aia_list / aia_get / aia_trace / aia_errors</h2>
+  <table>
+    <thead>
+      <tr><th class="col-id">ID</th><th class="col-pri"></th><th>Test Case</th><th>Steps</th><th>Expected Result</th><th class="col-result">Pass</th></tr>
+    </thead>
+    <tbody>
+      <!-- AIA LIST -->
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">servicenow_aia_list</td></tr>
+      <tr>
+        <td>AAL-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Rejects when not connected</td>
+        <td>Call without connection</td>
+        <td><code>isError: true</code>, "Not connected"</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAL-002</td><td><span class="priority priority-p0"></span></td>
+        <td>List all agents <span class="phase phase-live">Live</span></td>
+        <td>Connect, call with defaults</td>
+        <td>Returns list of AI Agents with name, description, status</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAL-003</td><td><span class="priority priority-p1"></span></td>
+        <td>Filter by status</td>
+        <td><code>status: "active"</code></td>
+        <td>Only active agents returned</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAL-004</td><td><span class="priority priority-p1"></span></td>
+        <td>Filter by name</td>
+        <td><code>nameFilter: "Incident"</code></td>
+        <td>Only agents with "Incident" in name</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAL-005</td><td><span class="priority priority-p1"></span></td>
+        <td>Include tools</td>
+        <td><code>includeTools: true</code></td>
+        <td>Each agent includes list of associated tools with names</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAL-006</td><td><span class="priority priority-p2"></span></td>
+        <td>Table discovery fallback</td>
+        <td>Test on instance where table name differs</td>
+        <td>Probes candidate table names, finds correct one</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <!-- AIA GET -->
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">servicenow_aia_get</td></tr>
+      <tr>
+        <td>AAG-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Rejects when not connected</td>
+        <td>Call without connection</td>
+        <td><code>isError: true</code>, "Not connected"</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAG-002</td><td><span class="priority priority-p0"></span></td>
+        <td>Get agent by name <span class="phase phase-live">Live</span></td>
+        <td><code>agent: "Incident Triage Agent"</code></td>
+        <td>Returns full agent config: instructions, strategy, tool list</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAG-003</td><td><span class="priority priority-p1"></span></td>
+        <td>Get agent by sys_id</td>
+        <td><code>agent: "abc123def456..."</code></td>
+        <td>Same result as by name</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAG-004</td><td><span class="priority priority-p1"></span></td>
+        <td>Include prompt/instructions</td>
+        <td><code>includePrompt: true</code></td>
+        <td>Full agent instructions/system prompt included</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAG-005</td><td><span class="priority priority-p1"></span></td>
+        <td>Include tool details</td>
+        <td><code>includeToolDetails: true</code></td>
+        <td>Each tool includes script, input/output schemas</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAG-006</td><td><span class="priority priority-p2"></span></td>
+        <td>Include stats</td>
+        <td><code>includeStats: true</code></td>
+        <td>Recent execution count, success rate, avg duration</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAG-007</td><td><span class="priority priority-p2"></span></td>
+        <td>Non-existent agent</td>
+        <td><code>agent: "does-not-exist"</code></td>
+        <td>Clear error: agent not found</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <!-- AIA TRACE -->
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">servicenow_aia_trace</td></tr>
+      <tr>
+        <td>AAT-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Rejects when not connected</td>
+        <td>Call without connection</td>
+        <td><code>isError: true</code>, "Not connected"</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAT-002</td><td><span class="priority priority-p0"></span></td>
+        <td>Trace execution <span class="phase phase-live">Live</span></td>
+        <td>Execute agent, get executionId, call trace</td>
+        <td>Step-by-step trace: decisions, tool calls, inputs, outputs, timing</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAT-003</td><td><span class="priority priority-p1"></span></td>
+        <td>Include token usage</td>
+        <td><code>includeTokenUsage: true</code></td>
+        <td>Token counts per step and total</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAT-004</td><td><span class="priority priority-p2"></span></td>
+        <td>Include raw payloads</td>
+        <td><code>includeRawPayloads: true</code></td>
+        <td>Raw JSON payloads for each LLM call</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAT-005</td><td><span class="priority priority-p2"></span></td>
+        <td>Non-existent execution ID</td>
+        <td><code>executionId: "nonexistent"</code></td>
+        <td>Clear error: execution not found</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <!-- AIA ERRORS -->
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">servicenow_aia_errors</td></tr>
+      <tr>
+        <td>AAE-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Rejects when not connected</td>
+        <td>Call without connection</td>
+        <td><code>isError: true</code>, "Not connected"</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAE-002</td><td><span class="priority priority-p1"></span></td>
+        <td>Default error aggregation <span class="phase phase-live">Live</span></td>
+        <td>Call with defaults</td>
+        <td>Returns error patterns grouped by type with counts</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAE-003</td><td><span class="priority priority-p1"></span></td>
+        <td>Filter by agent</td>
+        <td><code>agent: "Incident Triage Agent"</code></td>
+        <td>Only errors for specified agent</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAE-004</td><td><span class="priority priority-p2"></span></td>
+        <td>Group by tool</td>
+        <td><code>groupBy: "tool"</code></td>
+        <td>Errors grouped by tool name instead of error type</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AAE-005</td><td><span class="priority priority-p2"></span></td>
+        <td>Time range filter</td>
+        <td><code>timeRange: "7d"</code></td>
+        <td>Errors from last 7 days only</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════ 14. AIA EXEC/CREATE ═══════════════════════ -->
+<section id="tp-aia-exec">
+  <h2>14. servicenow_aia_execute / aia_create</h2>
+  <table>
+    <thead>
+      <tr><th class="col-id">ID</th><th class="col-pri"></th><th>Test Case</th><th>Steps</th><th>Expected Result</th><th class="col-result">Pass</th></tr>
+    </thead>
+    <tbody>
+      <!-- AIA EXECUTE -->
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">servicenow_aia_execute</td></tr>
+      <tr>
+        <td>AXE-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Rejects when not connected</td>
+        <td>Call without connection</td>
+        <td><code>isError: true</code>, "Not connected"</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AXE-002</td><td><span class="priority priority-p0"></span></td>
+        <td>Execute agent <span class="phase phase-live">Live</span></td>
+        <td><code>agent: "Incident Triage Agent", input: "What is INC0010001?"</code></td>
+        <td>Agent executes, returns response text and execution metadata</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AXE-003</td><td><span class="priority priority-p1"></span></td>
+        <td>Execute with target record</td>
+        <td>Include <code>targetTable: "incident", targetRecord: "INC0010001"</code></td>
+        <td>Agent executes in context of the specified record</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AXE-004</td><td><span class="priority priority-p1"></span></td>
+        <td>Wait for completion</td>
+        <td><code>waitForCompletion: true, timeoutSeconds: 60</code></td>
+        <td>Blocks until agent completes, returns full result</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AXE-005</td><td><span class="priority priority-p2"></span></td>
+        <td>Async (no wait)</td>
+        <td><code>waitForCompletion: false</code></td>
+        <td>Returns immediately with executionId for later trace</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AXE-006</td><td><span class="priority priority-p2"></span></td>
+        <td>Non-existent agent</td>
+        <td><code>agent: "does-not-exist"</code></td>
+        <td>Clear error: agent not found</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <!-- AIA CREATE -->
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">servicenow_aia_create</td></tr>
+      <tr>
+        <td>AXC-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Rejects when not connected</td>
+        <td>Call without connection</td>
+        <td><code>isError: true</code>, "Not connected"</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AXC-002</td><td><span class="priority priority-p0"></span></td>
+        <td>Dry-run mode (default)</td>
+        <td>Call with agent config, no <code>dryRun</code> flag</td>
+        <td>Returns preview of what would be created (tool records, agent record, m2m mappings) without modifying instance</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AXC-003</td><td><span class="priority priority-p0"></span></td>
+        <td>Dry-run explicitly true</td>
+        <td>Call with <code>dryRun: true</code></td>
+        <td>Same as default — preview only, no changes</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AXC-004</td><td><span class="priority priority-p1"></span></td>
+        <td>Create agent <span class="phase phase-live">Live</span></td>
+        <td>Call with <code>dryRun: false</code>, full agent spec with 1 tool</td>
+        <td>Tool created in sn_aia_tool, agent in sn_aia_agent, m2m mapping created. Returns sys_ids.</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AXC-005</td><td><span class="priority priority-p1"></span></td>
+        <td>Create with multiple tools</td>
+        <td>Include 2+ tools in the tools array</td>
+        <td>All tools created, all m2m mappings created</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AXC-006</td><td><span class="priority priority-p1"></span></td>
+        <td>Verify created agent works</td>
+        <td>After AXC-004, call <code>aia_execute</code> with the new agent</td>
+        <td>Agent executes successfully with its tools</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AXC-007</td><td><span class="priority priority-p2"></span></td>
+        <td>Missing required fields</td>
+        <td>Omit <code>agentInstructions</code></td>
+        <td>Clear error: agentInstructions is required</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>AXC-008</td><td><span class="priority priority-p1"></span></td>
+        <td>Strategy selection</td>
+        <td>Create with <code>strategy: "ReActivePlanner"</code></td>
+        <td>Agent created with ReActivePlanner strategy (verified via aia_get)</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════ 15. SKILL READ ═══════════════════════ -->
+<section id="tp-skill-read">
+  <h2>15. servicenow_skill_list / skill_get</h2>
+  <table>
+    <thead>
+      <tr><th class="col-id">ID</th><th class="col-pri"></th><th>Test Case</th><th>Steps</th><th>Expected Result</th><th class="col-result">Pass</th></tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">servicenow_skill_list</td></tr>
+      <tr>
+        <td>SKL-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Rejects when not connected</td>
+        <td>Call without connection</td>
+        <td><code>isError: true</code>, "Not connected"</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SKL-002</td><td><span class="priority priority-p0"></span></td>
+        <td>List all skills <span class="phase phase-live">Live</span></td>
+        <td>Connect, call with defaults</td>
+        <td>Returns Now Assist skills with name, description, status, category</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SKL-003</td><td><span class="priority priority-p1"></span></td>
+        <td>Filter by status</td>
+        <td><code>status: "active"</code></td>
+        <td>Only active skills returned</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SKL-004</td><td><span class="priority priority-p1"></span></td>
+        <td>Filter by category</td>
+        <td><code>category: "summarization"</code></td>
+        <td>Only skills in that category</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SKL-005</td><td><span class="priority priority-p2"></span></td>
+        <td>Table discovery fallback</td>
+        <td>Test on instance with different skill table name</td>
+        <td>Probes candidate table names, finds correct one</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">servicenow_skill_get</td></tr>
+      <tr>
+        <td>SKG-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Rejects when not connected</td>
+        <td>Call without connection</td>
+        <td><code>isError: true</code>, "Not connected"</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SKG-002</td><td><span class="priority priority-p0"></span></td>
+        <td>Get skill by name <span class="phase phase-live">Live</span></td>
+        <td><code>skill: "Case Summarizer"</code></td>
+        <td>Returns full skill config: name, description, status</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SKG-003</td><td><span class="priority priority-p1"></span></td>
+        <td>Include prompt</td>
+        <td><code>includePrompt: true</code></td>
+        <td>Full prompt template included in response</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SKG-004</td><td><span class="priority priority-p1"></span></td>
+        <td>Include schema</td>
+        <td><code>includeSchema: true</code></td>
+        <td>Input and output schemas included</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SKG-005</td><td><span class="priority priority-p2"></span></td>
+        <td>Include versions</td>
+        <td><code>includeVersions: true</code></td>
+        <td>Version history of the skill</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SKG-006</td><td><span class="priority priority-p2"></span></td>
+        <td>Non-existent skill</td>
+        <td><code>skill: "does-not-exist"</code></td>
+        <td>Clear error: skill not found</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════ 16. SKILL EXEC/CREATE ═══════════════════════ -->
+<section id="tp-skill-exec">
+  <h2>16. servicenow_skill_execute / skill_create</h2>
+  <table>
+    <thead>
+      <tr><th class="col-id">ID</th><th class="col-pri"></th><th>Test Case</th><th>Steps</th><th>Expected Result</th><th class="col-result">Pass</th></tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">servicenow_skill_execute</td></tr>
+      <tr>
+        <td>SKX-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Rejects when not connected</td>
+        <td>Call without connection</td>
+        <td><code>isError: true</code>, "Not connected"</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SKX-002</td><td><span class="priority priority-p0"></span></td>
+        <td>Execute skill <span class="phase phase-live">Live</span></td>
+        <td><code>skill: "Case Summarizer", input: { "case_number": "CS0010001" }</code></td>
+        <td>Skill executes, returns output text and metadata</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SKX-003</td><td><span class="priority priority-p1"></span></td>
+        <td>Model override</td>
+        <td><code>modelOverride: "gpt-4"</code></td>
+        <td>Skill uses specified model instead of default</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SKX-004</td><td><span class="priority priority-p2"></span></td>
+        <td>Temperature override</td>
+        <td><code>temperatureOverride: 0.1</code></td>
+        <td>Skill uses specified temperature</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">servicenow_skill_create</td></tr>
+      <tr>
+        <td>SKC-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Rejects when not connected</td>
+        <td>Call without connection</td>
+        <td><code>isError: true</code>, "Not connected"</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SKC-002</td><td><span class="priority priority-p0"></span></td>
+        <td>Dry-run mode (default)</td>
+        <td>Call with skill config, no dryRun flag</td>
+        <td>Returns preview of 8-table creation plan without modifying instance</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SKC-003</td><td><span class="priority priority-p1"></span></td>
+        <td>Create skill <span class="phase phase-live">Live</span></td>
+        <td>Call with <code>dryRun: false</code>, full skill spec</td>
+        <td>Records created across all 8 tables. Returns sys_ids for each record.</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SKC-004</td><td><span class="priority priority-p1"></span></td>
+        <td>Verify created skill visible</td>
+        <td>After SKC-003, call <code>skill_list</code></td>
+        <td>New skill appears in the list</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SKC-005</td><td><span class="priority priority-p1"></span></td>
+        <td>Verify created skill executable</td>
+        <td>After SKC-003, call <code>skill_execute</code></td>
+        <td>Skill executes successfully with test input</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SKC-006</td><td><span class="priority priority-p2"></span></td>
+        <td>Missing required fields</td>
+        <td>Omit <code>promptTemplate</code></td>
+        <td>Clear error: promptTemplate is required</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SKC-007</td><td><span class="priority priority-p2"></span></td>
+        <td>Include input/output schemas</td>
+        <td>Provide inputSchema and outputSchema objects</td>
+        <td>Definition attributes created for each input/output field</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════ 17. SECURITY ═══════════════════════ -->
+<section id="tp-security">
+  <h2>17. Security Tests</h2>
+  <div class="note note-danger">
+    <strong>Critical:</strong> These tests validate that the MCP server cannot be used to execute malicious operations on a ServiceNow instance or the local filesystem.
+  </div>
+  <table>
+    <thead>
+      <tr><th class="col-id">ID</th><th class="col-pri"></th><th>Test Case</th><th>Steps</th><th>Expected Result</th><th class="col-result">Pass</th></tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">Script Safety</td></tr>
+      <tr>
+        <td>SEC-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Shell metacharacters blocked in exec</td>
+        <td>Pass <code>; rm -rf /</code> in a resource name</td>
+        <td>Rejected by <code>validateResourceName()</code></td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SEC-002</td><td><span class="priority priority-p0"></span></td>
+        <td>Safe exec uses spawn (no shell)</td>
+        <td>Verify <code>safeExec</code> uses <code>spawn</code> with <code>shell: false</code></td>
+        <td>No shell interpretation of metacharacters</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SEC-003</td><td><span class="priority priority-p0"></span></td>
+        <td>Path traversal blocked</td>
+        <td>Pass <code>../../etc/passwd</code> as resource name</td>
+        <td>Rejected: names must be lowercase alphanumeric with hyphens</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">ServiceNow Query Safety</td></tr>
+      <tr>
+        <td>SEC-004</td><td><span class="priority priority-p1"></span></td>
+        <td>Query injection attempt</td>
+        <td>Pass malicious encoded query: <code>active=true^ORDERBYDESCsys_created_on;DROP TABLE incident</code></td>
+        <td>Query passed as-is to ServiceNow API (which sanitizes server-side). No local shell execution.</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SEC-005</td><td><span class="priority priority-p1"></span></td>
+        <td>Script mode enforcement</td>
+        <td>Call <code>servicenow_script</code> with <code>mode: "readonly"</code> and destructive script</td>
+        <td>Script runs in read-only context on the ServiceNow side</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">Credential Safety</td></tr>
+      <tr>
+        <td>SEC-006</td><td><span class="priority priority-p1"></span></td>
+        <td>Credentials not in tool output</td>
+        <td>Connect with password, then call status</td>
+        <td>Password/token never appears in any tool response text</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SEC-007</td><td><span class="priority priority-p1"></span></td>
+        <td>Credentials file permissions</td>
+        <td>Check <code>~/.servicenow/credentials.json</code> file read</td>
+        <td>File read with appropriate permissions, no logging of contents</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+
+      <tr><td colspan="6" style="background:#f1f3f5;font-weight:600;">Create Tool Safety</td></tr>
+      <tr>
+        <td>SEC-008</td><td><span class="priority priority-p0"></span></td>
+        <td>aia_create defaults to dry-run</td>
+        <td>Call aia_create without setting dryRun</td>
+        <td>No records created on instance (dry-run: true by default)</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SEC-009</td><td><span class="priority priority-p0"></span></td>
+        <td>skill_create defaults to dry-run</td>
+        <td>Call skill_create without setting dryRun</td>
+        <td>No records created on instance (dry-run: true by default)</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>SEC-010</td><td><span class="priority priority-p1"></span></td>
+        <td>Tool script safety in aia_create</td>
+        <td>Create agent with tool containing <code>gs.log()</code> in script</td>
+        <td>Tool created but execution will hang (per tool script rules). Consider adding a warning.</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════ 18. E2E ═══════════════════════ -->
+<section id="tp-e2e">
+  <h2>18. End-to-End Workflows</h2>
+  <div class="note note-info">
+    <strong>Note:</strong> E2E workflows chain multiple tools together to validate real-world usage patterns. Live tests require a ServiceNow dev instance.
+  </div>
+  <table>
+    <thead>
+      <tr><th class="col-id">ID</th><th class="col-pri"></th><th>Workflow</th><th>Steps</th><th>Expected Result</th><th class="col-result">Pass</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>E2E-001</td><td><span class="priority priority-p0"></span></td>
+        <td><strong>Project Bootstrap</strong><br><span class="phase phase-offline">Offline</span></td>
+        <td>
+          1. <code>foundry_init</code> → create project<br>
+          2. <code>foundry_list</code> → verify resources<br>
+          3. <code>foundry_add</code> → add extra skill<br>
+          4. <code>foundry_info</code> → inspect added skill<br>
+          5. <code>foundry_search</code> → find content
+        </td>
+        <td>Project fully bootstrapped with all resources accessible and searchable</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>E2E-002</td><td><span class="priority priority-p0"></span></td>
+        <td><strong>Contribution Workflow</strong><br><span class="phase phase-offline">Offline</span></td>
+        <td>
+          1. <code>foundry_new</code> → scaffold resource<br>
+          2. Edit the scaffolded content<br>
+          3. <code>foundry_validate</code> → check quality<br>
+          4. <code>foundry_promote</code> → generate PR
+        </td>
+        <td>Resource created, validated, and PR metadata generated correctly</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>E2E-003</td><td><span class="priority priority-p0"></span></td>
+        <td><strong>ServiceNow Connection Lifecycle</strong><br><span class="phase phase-live">Live</span></td>
+        <td>
+          1. <code>servicenow_status</code> → not connected<br>
+          2. <code>servicenow_connect</code> → authenticate<br>
+          3. <code>servicenow_status</code> → connected<br>
+          4. <code>servicenow_query</code> → read data<br>
+          5. <code>servicenow_disconnect</code> → close<br>
+          6. <code>servicenow_status</code> → not connected
+        </td>
+        <td>Full connection lifecycle works. Queries work while connected, guards work after disconnect.</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>E2E-004</td><td><span class="priority priority-p1"></span></td>
+        <td><strong>Agent Build &amp; Test</strong><br><span class="phase phase-live">Live</span></td>
+        <td>
+          1. <code>servicenow_connect</code><br>
+          2. <code>aia_create dryRun: true</code> → preview<br>
+          3. <code>aia_create dryRun: false</code> → create agent<br>
+          4. <code>aia_list</code> → verify agent appears<br>
+          5. <code>aia_get</code> → inspect full config<br>
+          6. <code>aia_execute</code> → test the agent<br>
+          7. <code>aia_trace</code> → inspect execution
+        </td>
+        <td>Complete agent lifecycle: create, verify, execute, trace. Agent works end-to-end.</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>E2E-005</td><td><span class="priority priority-p1"></span></td>
+        <td><strong>Skill Build &amp; Test</strong><br><span class="phase phase-live">Live</span></td>
+        <td>
+          1. <code>servicenow_connect</code><br>
+          2. <code>skill_create dryRun: true</code> → preview 8-table plan<br>
+          3. <code>skill_create dryRun: false</code> → create skill<br>
+          4. <code>skill_list</code> → verify skill appears<br>
+          5. <code>skill_get</code> → inspect config + prompt<br>
+          6. <code>skill_execute</code> → invoke skill
+        </td>
+        <td>Complete skill lifecycle: create across 8 tables, verify, execute. Skill returns valid output.</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>E2E-006</td><td><span class="priority priority-p1"></span></td>
+        <td><strong>Troubleshooting Flow</strong><br><span class="phase phase-live">Live</span></td>
+        <td>
+          1. <code>servicenow_connect</code><br>
+          2. <code>aia_errors</code> → find error patterns<br>
+          3. <code>aia_trace executionId</code> → deep dive<br>
+          4. <code>servicenow_syslogs</code> → check system logs<br>
+          5. <code>servicenow_instance</code> → check health
+        </td>
+        <td>Full troubleshooting path from error detection to root cause investigation</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>E2E-007</td><td><span class="priority priority-p1"></span></td>
+        <td><strong>MCP Protocol Full Cycle</strong><br><span class="phase phase-offline">Offline</span></td>
+        <td>
+          1. Spawn server over stdio<br>
+          2. Send <code>initialize</code> → get capabilities<br>
+          3. Send <code>notifications/initialized</code><br>
+          4. Send <code>tools/list</code> → get 30 tools<br>
+          5. Send <code>tools/call</code> for servicenow_status<br>
+          6. Send <code>tools/call</code> for foundry_init<br>
+          7. Kill server gracefully
+        </td>
+        <td>Full MCP protocol compliance. All NDJSON messages correctly formatted. Server responds to all requests.</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════ 19. PERFORMANCE ═══════════════════════ -->
+<section id="tp-perf">
+  <h2>19. Performance &amp; Limits</h2>
+  <table>
+    <thead>
+      <tr><th class="col-id">ID</th><th class="col-pri"></th><th>Test Case</th><th>Steps</th><th>Expected Result</th><th class="col-result">Pass</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>PF-001</td><td><span class="priority priority-p2"></span></td>
+        <td>Server startup time</td>
+        <td>Time from spawn to first response</td>
+        <td>&lt; 2 seconds</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>PF-002</td><td><span class="priority priority-p2"></span></td>
+        <td>tools/list response time</td>
+        <td>Measure tools/list latency</td>
+        <td>&lt; 100ms (no I/O)</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>PF-003</td><td><span class="priority priority-p2"></span></td>
+        <td>foundry_init response time</td>
+        <td>Measure init with cached golden repo</td>
+        <td>&lt; 5 seconds (file copy only)</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>PF-004</td><td><span class="priority priority-p2"></span></td>
+        <td>Query limit enforcement</td>
+        <td>Request <code>limit: 500</code> on a large table</td>
+        <td>Server returns max 500 records, response remains reasonable</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>PF-005</td><td><span class="priority priority-p3"></span></td>
+        <td>Table discovery caching</td>
+        <td>Call aia_list twice in same session</td>
+        <td>Second call skips table probing (cache hit)</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>PF-006</td><td><span class="priority priority-p3"></span></td>
+        <td>Golden repo cache TTL</td>
+        <td>Init, wait &gt; 24h (or set env var), init again</td>
+        <td>Cache refreshed via git pull after TTL expires</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════ 20. MCP PROTOCOL ═══════════════════════ -->
+<section id="tp-mcp-protocol">
+  <h2>20. MCP Protocol Compliance</h2>
+  <table>
+    <thead>
+      <tr><th class="col-id">ID</th><th class="col-pri"></th><th>Test Case</th><th>Steps</th><th>Expected Result</th><th class="col-result">Pass</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>MCP-001</td><td><span class="priority priority-p0"></span></td>
+        <td>Initialize handshake</td>
+        <td>Send <code>initialize</code> with protocolVersion and clientInfo</td>
+        <td>Response includes server capabilities and server info</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>MCP-002</td><td><span class="priority priority-p0"></span></td>
+        <td>Tool count</td>
+        <td>Send <code>tools/list</code></td>
+        <td>Returns exactly 30 tools (12 foundry + 18 servicenow)</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>MCP-003</td><td><span class="priority priority-p0"></span></td>
+        <td>All tool names present</td>
+        <td>Verify all 30 expected tool names in response</td>
+        <td>No missing or extra tools</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>MCP-004</td><td><span class="priority priority-p0"></span></td>
+        <td>Tool schemas valid</td>
+        <td>Each tool has name, description, inputSchema with type: "object"</td>
+        <td>All schemas are valid JSON Schema</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>MCP-005</td><td><span class="priority priority-p0"></span></td>
+        <td>tools/call dispatches correctly</td>
+        <td>Call each tool category (foundry, SN, AIA, skill)</td>
+        <td>Each tool dispatched to correct handler</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>MCP-006</td><td><span class="priority priority-p1"></span></td>
+        <td>Unknown tool returns error</td>
+        <td>Call <code>tools/call</code> with <code>name: "nonexistent_tool"</code></td>
+        <td><code>isError: true</code>, "Unknown tool: nonexistent_tool"</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>MCP-007</td><td><span class="priority priority-p1"></span></td>
+        <td>NDJSON framing</td>
+        <td>Send multiple rapid requests</td>
+        <td>Each response is a complete JSON object on its own line, no interleaving</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>MCP-008</td><td><span class="priority priority-p1"></span></td>
+        <td>Response ID matching</td>
+        <td>Send requests with IDs 1, 2, 3</td>
+        <td>Each response has matching ID</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>MCP-009</td><td><span class="priority priority-p2"></span></td>
+        <td>Graceful shutdown</td>
+        <td>Send SIGTERM to server process</td>
+        <td>Server exits cleanly (code 0), no orphan processes</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+      <tr>
+        <td>MCP-010</td><td><span class="priority priority-p2"></span></td>
+        <td>stderr logging</td>
+        <td>Check stderr output on startup</td>
+        <td>"Foundry MCP server started" on stderr (not stdout, which is for NDJSON)</td>
+        <td class="result-cell"><input type="checkbox"></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════ SIGN-OFF ═══════════════════════ -->
+<section>
+  <h2>Test Execution Sign-Off</h2>
+  <div class="card">
+    <table>
+      <tr>
+        <td style="width:200px;font-weight:600;">Tester Name</td>
+        <td style="border-bottom:1px solid #999;width:300px;">&nbsp;</td>
+        <td style="width:100px;font-weight:600;">Date</td>
+        <td style="border-bottom:1px solid #999;width:200px;">&nbsp;</td>
+      </tr>
+    </table>
+    <br>
+    <table>
+      <thead>
+        <tr>
+          <th>Phase</th>
+          <th>Total Cases</th>
+          <th>Passed</th>
+          <th>Failed</th>
+          <th>Skipped</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Automated (offline)</td><td>152</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>Foundry Tools (manual)</td><td>48</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>SN Core (offline guards)</td><td>16</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>SN Core (live instance)</td><td>25</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>AIA Tools (live)</td><td>30</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>Skill Tools (live)</td><td>20</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>Security</td><td>10</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>E2E Workflows</td><td>7</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>Performance</td><td>6</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>MCP Protocol</td><td>10</td><td></td><td></td><td></td><td></td></tr>
+        <tr style="font-weight:700;background:#f1f3f5;"><td>TOTAL</td><td>324</td><td></td><td></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</div><!-- .container -->
+
+<div style="background:#1a1a2e;color:#a0aec0;text-align:center;padding:1.5rem;font-size:0.85rem;margin-top:3rem;">
+  Foundry MCP Server Test Plan &mdash; v2026.02.1303 &mdash; AI Foundry Team &mdash; Now-AI-Foundry
+</div>
+
+</body>
+</html>

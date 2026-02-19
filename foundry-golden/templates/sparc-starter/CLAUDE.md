@@ -26,6 +26,76 @@ This project was initialized with pre-loaded resources for Now Assist POC develo
 
 ---
 
+## Building Anything (STOP AND ASK FIRST)
+
+**CRITICAL: Before building, creating, or implementing ANYTHING, you MUST ask clarifying questions.**
+
+This is NON-NEGOTIABLE. Do not skip this step even if you think you understand the request.
+
+### The Rule
+
+When the user asks you to build/create/implement something:
+
+1. **STOP** - Do not write code or generate solutions yet
+2. **ASK** - Use `AskUserQuestion` tool to clarify requirements
+3. **CONFIRM** - Wait for user answers before proceeding
+4. **THEN BUILD** - Only after clarification, proceed with implementation
+
+### What Triggers This Rule
+
+Any request that involves creating something new:
+- "Build a skill that..."
+- "Create a function to..."
+- "Implement a feature for..."
+- "Add a button that..."
+- "Write a script to..."
+- "Help me make..."
+
+### Minimum Questions to Ask
+
+Before ANY implementation, clarify at least:
+
+1. **Purpose** - What specific problem does this solve?
+2. **Users** - Who will use this and how?
+3. **Inputs** - What data/information goes in?
+4. **Outputs** - What should come out? What format?
+5. **Edge cases** - What happens when things go wrong?
+
+### Example
+
+❌ **Wrong:**
+```
+User: "Create a skill that summarizes incidents"
+Claude: [Immediately generates 200 lines of code]
+```
+
+✅ **Correct:**
+```
+User: "Create a skill that summarizes incidents"
+Claude: [Uses AskUserQuestion]
+  - What fields should be included in the summary?
+  - How long should the summary be?
+  - Who will read these summaries (agents, customers, managers)?
+  - Should it highlight priority/severity?
+User: [Answers questions]
+Claude: [Now builds to spec]
+```
+
+### Brainstorming Workflow
+
+For complex builds, invoke `/brainstorming` (if available) BEFORE implementation. This explores requirements, alternatives, and trade-offs systematically.
+
+### Skip Phrases
+
+The user may explicitly skip this by saying:
+- "Just build it" or "Skip questions"
+- "I know what I want, here are the details: [detailed spec]"
+- "Use the same pattern as X"
+
+Without explicit skip permission, **ALWAYS ASK FIRST**.
+
+---
+
 ## SPARC Methodology
 
 This project follows SPARC: **S**pecification → **P**seudocode → **A**rchitecture → **R**efinement → **C**ompletion

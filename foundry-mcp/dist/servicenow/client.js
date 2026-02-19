@@ -3,6 +3,7 @@
  * Handles all HTTP communication with ServiceNow instances
  */
 import { ServiceNowError, ServiceNowErrorType, } from './types.js';
+import { CONFIG } from '../shared/config.js';
 const DEFAULT_RETRY_CONFIG = {
     maxRetries: 3,
     retryableErrors: [
@@ -72,7 +73,7 @@ export class ServiceNowClient {
     async request(endpoint, options = {}) {
         const url = `${this.instanceUrl}${endpoint}`;
         const method = options.method || 'GET';
-        const timeout = options.timeout || 30000;
+        const timeout = options.timeout || CONFIG.requestTimeoutMs;
         const headers = {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
@@ -234,6 +235,30 @@ export class ServiceNowClient {
         params.set('sysparm_limit', String(limit));
         const endpoint = `/api/now/table/${table}?${params.toString()}`;
         return this.requestWithRetry(endpoint);
+    }
+    /**
+     * Create a record in a table
+     */
+    async createRecord(table, data) {
+        return this.requestWithRetry(`/api/now/table/${table}`, {
+            method: 'POST',
+            body: data,
+        });
+    }
+    /**
+     * Update a record in a table
+     */
+    async updateRecord(table, sysId, data) {
+        return this.requestWithRetry(`/api/now/table/${table}/${sysId}`, {
+            method: 'PATCH',
+            body: data,
+        });
+    }
+    /**
+     * Delete a record from a table
+     */
+    async deleteRecord(table, sysId) {
+        await this.requestWithRetry(`/api/now/table/${table}/${sysId}`, { method: 'DELETE' });
     }
     /**
      * Set access token (for OAuth)

@@ -378,3 +378,47 @@ try {
     }
 }
 ```
+
+---
+
+## GenAI Controller Architecture (Zurich)
+
+The GenAI Controller in Zurich follows a capability chain:
+
+```
+Capability → Skill → Prompt Template → LLM Provider → Response
+```
+
+### Capability Framework
+
+The `sys_one_extend_*` tables form the capability registration system:
+- `sys_one_extend_capability` — Top-level capability registration
+- `sys_one_extend_capability_definition` — API surface definition (CRITICAL: `api` and `api_type` fields)
+- `sys_one_extend_definition_config` — Default configuration (CRITICAL: `default=true`)
+- `sys_one_extend_definition_attribute` — Input/output schema attributes
+
+### Provider and Model Configuration (BYOLLM)
+
+Zurich supports Bring Your Own LLM:
+
+| Provider | Connection URL Format | Default Model |
+|----------|----------------------|---------------|
+| Azure OpenAI | `https://{resource}.openai.azure.com` | GPT-4 |
+| Amazon Bedrock | IAM user with `bedrock:InvokeModel` | Amazon Titan |
+| Google Vertex AI | Vertex AI endpoint | Gemini |
+| Now LLM Service | ServiceNow-hosted | Now LLM |
+
+Custom providers can be added via custom transformers that implement request/response translation.
+
+### Advanced Features
+
+- **Recursive Summarization**: Breaks long content into chunks, summarizes each, then summarizes the summaries. May cause slower processing due to multiple LLM calls.
+- **Dynamic Translation**: Translates skill outputs to user's preferred language. Not available for Virtual Agent or Now Assist panel capabilities.
+- **Web Search Integration**: Some skills can augment responses with web search results. NOT supported by Azure OpenAI.
+
+### Limitations
+
+- GenAI Controller only supports **text generation** (no image/audio)
+- Only one provider can be default per capability at a time
+- Capabilities from other Now Assist applications use Now LLM Service and cannot be reconfigured
+- GenAI log data retained for 6 months by default

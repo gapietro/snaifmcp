@@ -1,0 +1,28 @@
+name: Prevent Force Push
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  check-force-push:
+    name: Detect Force Push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for force push
+        env:
+          IS_FORCED: ${{ github.event.forced }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          echo "Checking for force push..."
+          echo "Forced: $IS_FORCED"
+          echo "Actor: $ACTOR"
+
+          if [[ "$IS_FORCED" == "true" ]]; then
+            echo "❌ Force pushes to main are not allowed!"
+            echo "Force push detected by: $ACTOR"
+            echo "This can rewrite history and cause problems for other developers."
+            exit 1
+          else
+            echo "✅ Not a force push"
+          fi

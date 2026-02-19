@@ -15,6 +15,7 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import { fileURLToPath } from "url";
+import { TestRunner } from "./utils/test-runner.js";
 
 // ES Module compatibility
 const __filename = fileURLToPath(import.meta.url);
@@ -22,7 +23,8 @@ const __dirname = path.dirname(__filename);
 
 // Configuration
 const TEST_PROJECT_NAME = "foundry-test-project";
-const GOLDEN_REPO_PATH = path.resolve(__dirname, "../../foundry-golden");
+const GOLDEN_REPO_PATH = process.env.FOUNDRY_GOLDEN_PATH
+  || path.resolve(__dirname, "../../foundry-golden");
 const TEST_OUTPUT_DIR = path.resolve(__dirname, "../.test-output");
 const TEST_PROJECT_PATH = path.join(TEST_OUTPUT_DIR, TEST_PROJECT_NAME);
 
@@ -48,14 +50,8 @@ const EXPECTED_CLAUDE_MD_CONTENT = [
   "skills",
 ];
 
-// Test results
-interface TestResult {
-  name: string;
-  passed: boolean;
-  message: string;
-}
-
-const results: TestResult[] = [];
+// Test runner instance
+const t = new TestRunner();
 
 // Utility functions
 async function fileExists(filePath: string): Promise<boolean> {
@@ -85,20 +81,11 @@ async function readFileContent(filePath: string): Promise<string> {
 }
 
 function log(message: string, type: "info" | "pass" | "fail" | "header" = "info") {
-  const colors = {
-    info: "\x1b[0m",
-    pass: "\x1b[32m",
-    fail: "\x1b[31m",
-    header: "\x1b[36m",
-  };
-  const reset = "\x1b[0m";
-  const prefix = type === "pass" ? "✓" : type === "fail" ? "✗" : "→";
-  console.log(`${colors[type]}${prefix} ${message}${reset}`);
+  t.log(message, type);
 }
 
 function addResult(name: string, passed: boolean, message: string) {
-  results.push({ name, passed, message });
-  log(`${name}: ${message}`, passed ? "pass" : "fail");
+  t.addResult(name, passed, message);
 }
 
 // Show summary of golden repo resources
@@ -1490,20 +1477,7 @@ async function main() {
   log("  SUMMARY", "header");
   log("═══════════════════════════════════════════════════════════", "header");
 
-  const passed = results.filter(r => r.passed).length;
-  const failed = results.filter(r => !r.passed).length;
-  const total = results.length;
-
-  console.log("");
-  log(`Passed: ${passed}/${total}`, passed === total ? "pass" : "info");
-  if (failed > 0) {
-    log(`Failed: ${failed}/${total}`, "fail");
-    console.log("");
-    log("Failed tests:", "fail");
-    results.filter(r => !r.passed).forEach(r => {
-      log(`  ${r.name}: ${r.message}`, "fail");
-    });
-  }
+  const { failed } = t.printSummary();
   console.log("");
 
   // Show generated project structure (dynamically built)

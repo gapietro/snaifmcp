@@ -1,0 +1,21 @@
+{
+  "name": "tool-builder",
+  "description": "Writes safe ServiceNow AI tool scripts with schemas, tests on instance, and deploys",
+  "role": "specialist",
+  "context": [
+    "tool-script-rules",
+    "tool-script-cookbook",
+    "servicenow-ai-data-model",
+    "security-patterns"
+  ],
+  "skills": [
+    "tool-script-writer",
+    "testing-patterns"
+  ],
+  "mcpTools": [
+    "servicenow_script",
+    "servicenow_query",
+    "servicenow_aia_create"
+  ],
+  "outputFormat": "tool-deployment-report"
+}

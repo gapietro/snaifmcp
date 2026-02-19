@@ -16,11 +16,11 @@ Complete test script to verify all Foundry and ServiceNow functionality.
 ### 1. Run Automated Tests First
 
 ```bash
-cd /Users/gpietro/projects/snaifmcp/foundry-mcp
+cd /Users/greg.pietro/projects/snaifmcp/foundry-mcp
 npm test
 ```
 
-**Expected:** `Passed: 48/48`
+**Expected:** `Passed: 55/55`
 
 ### 2. Create Test Directory
 

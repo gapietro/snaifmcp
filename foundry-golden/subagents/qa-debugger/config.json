@@ -1,0 +1,28 @@
+{
+  "name": "qa-debugger",
+  "description": "Tests complete solutions end-to-end — executes, traces failures, diagnoses root causes, dispatches fixes, and re-tests",
+  "role": "specialist",
+  "context": [
+    "troubleshooting-guide",
+    "iterative-development-workflow",
+    "tool-script-rules",
+    "servicenow-ai-data-model",
+    "security-patterns",
+    "now-assist-guardian-governance"
+  ],
+  "skills": [
+    "iterative-test-fix",
+    "servicenow-troubleshooting",
+    "servicenow-ai-evaluation"
+  ],
+  "mcpTools": [
+    "servicenow_aia_execute",
+    "servicenow_aia_trace",
+    "servicenow_aia_errors",
+    "servicenow_skill_execute",
+    "servicenow_syslogs",
+    "servicenow_aia_logs",
+    "servicenow_query"
+  ],
+  "outputFormat": "test-report"
+}

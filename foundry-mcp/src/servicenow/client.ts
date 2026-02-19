@@ -12,6 +12,7 @@ import {
   InstanceInfo,
   UserInfo,
 } from './types.js';
+import { CONFIG } from '../shared/config.js';
 
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -121,7 +122,7 @@ export class ServiceNowClient {
   ): Promise<T> {
     const url = `${this.instanceUrl}${endpoint}`;
     const method = options.method || 'GET';
-    const timeout = options.timeout || 30000;
+    const timeout = options.timeout || CONFIG.requestTimeoutMs;
 
     const headers: Record<string, string> = {
       'Accept': 'application/json',
@@ -381,6 +382,52 @@ export class ServiceNowClient {
 
     const endpoint = `/api/now/table/${table}?${params.toString()}`;
     return this.requestWithRetry<TableAPIResponse>(endpoint);
+  }
+
+  /**
+   * Create a record in a table
+   */
+  async createRecord(
+    table: string,
+    data: Record<string, unknown>
+  ): Promise<SingleRecordResponse> {
+    return this.requestWithRetry<SingleRecordResponse>(
+      `/api/now/table/${table}`,
+      {
+        method: 'POST',
+        body: data,
+      }
+    );
+  }
+
+  /**
+   * Update a record in a table
+   */
+  async updateRecord(
+    table: string,
+    sysId: string,
+    data: Record<string, unknown>
+  ): Promise<SingleRecordResponse> {
+    return this.requestWithRetry<SingleRecordResponse>(
+      `/api/now/table/${table}/${sysId}`,
+      {
+        method: 'PATCH',
+        body: data,
+      }
+    );
+  }
+
+  /**
+   * Delete a record from a table
+   */
+  async deleteRecord(
+    table: string,
+    sysId: string
+  ): Promise<void> {
+    await this.requestWithRetry<Record<string, unknown>>(
+      `/api/now/table/${table}/${sysId}`,
+      { method: 'DELETE' }
+    );
   }
 
   /**

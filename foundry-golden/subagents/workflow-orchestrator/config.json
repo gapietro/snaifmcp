@@ -1,0 +1,21 @@
+{
+  "name": "workflow-orchestrator",
+  "description": "Wires multi-agent workflows — connects orchestrator to child agents, configures triggers and handoff patterns",
+  "role": "specialist",
+  "context": [
+    "agentic-patterns",
+    "multi-agent-handoff-patterns",
+    "flow-designer-for-ai",
+    "servicenow-ai-data-model"
+  ],
+  "skills": [
+    "agentic-workflow-builder",
+    "servicenow-agent-builder"
+  ],
+  "mcpTools": [
+    "servicenow_aia_create",
+    "servicenow_query",
+    "servicenow_script"
+  ],
+  "outputFormat": "workflow-configuration-report"
+}
