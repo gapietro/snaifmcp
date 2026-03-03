@@ -91,7 +91,7 @@ snaifmcp/
 
 | Folder | GitHub Repo | Purpose |
 |--------|-------------|---------|
-| `foundry-mcp/` | [Now-AI-Foundry/foundry-mcp](https://github.com/Now-AI-Foundry/foundry-mcp) | MCP server implementation |
+| `foundry-mcp/` | [Now-AI-Foundry/tool-foundry-mcp](https://github.com/Now-AI-Foundry/tool-foundry-mcp) | MCP server implementation |
 | `foundry-golden/` | [Now-AI-Foundry/foundry-golden](https://github.com/Now-AI-Foundry/foundry-golden) | Golden repo content (context, skills, templates) |
 | `snaifmcp/` (this repo) | [gapietro/snaifmcp](https://github.com/gapietro/snaifmcp) | Planning docs, specs, coordination |
 
@@ -99,7 +99,7 @@ snaifmcp/
 
 1. **MCP server changes** (code in `src/`, `package.json`, tests):
    - `cd foundry-mcp`
-   - Create issues/PRs in `Now-AI-Foundry/foundry-mcp`
+   - Create issues/PRs in `Now-AI-Foundry/tool-foundry-mcp`
    - Version bumps apply to foundry-mcp's package.json
 
 2. **Golden repo changes** (context, skills, templates, agent examples):
