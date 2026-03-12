@@ -243,6 +243,54 @@ async function getAllRecords(table, query) {
 
 ## Skill File Structure
 
+### SKILL.md Frontmatter
+
+All SKILL.md files must include YAML frontmatter with the following fields:
+
+```yaml
+---
+name: skill-name                    # kebab-case identifier matching the directory name
+description: >                      # One-line description used by foundry_check_context trigger matching
+  Brief description of when to use this skill
+scope: project                      # "project" = .claude/skills/ | "global" = ~/.claude/skills/
+recommended: false                  # true = surfaced in startup warnings + foundry_init suggestions
+version: 1.0.0                      # Semantic version
+triggers:                           # Keywords that trigger foundry_check_context to suggest this skill
+  - keyword one
+  - keyword two
+tags:                               # Categories for foundry_list filter
+  - category-one
+  - category-two
+---
+```
+
+#### Field Reference
+
+| Field | Required | Values | Description |
+|-------|----------|--------|-------------|
+| `name` | Yes | kebab-case string | Matches directory name |
+| `description` | Yes | string | Used for context matching and display |
+| `scope` | Yes | `project` or `global` | Install target — project-local or developer machine |
+| `recommended` | Yes | `true` or `false` | Show in startup warnings and `foundry_init` suggestions |
+| `version` | Yes | semver string | For tracking updates |
+| `triggers` | No | array of strings | Keywords for `foundry_check_context` matching |
+| `tags` | No | array of strings | Categories for `foundry_list filter=tag` |
+
+#### scope: project vs global
+
+- **`scope: project`** — Skill is copied to `project/.claude/skills/` when installed. Appropriate for project-specific workflows, patterns, and domain knowledge.
+- **`scope: global`** — Skill is installed to `~/.claude/skills/` (developer machine level). Appropriate for developer tools, credentials management, and platform-wide skills. NOT auto-copied into new projects.
+
+#### recommended: true
+
+Only set `recommended: true` for skills that every team developer should have. These skills:
+- Appear in startup warnings when not installed
+- Are suggested (but not auto-installed) by `foundry_init`
+- Show with ★ in `foundry_list` output
+
+Currently recommended global skills: `apple-keychain-auth`, `now-sdk-deployment`
+Currently recommended project skills: `testing-patterns`, `api-integration`, `deployment-automation`
+
 ### SKILL.md Template
 
 ```markdown

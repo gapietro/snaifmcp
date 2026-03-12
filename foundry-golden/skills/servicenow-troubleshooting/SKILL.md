@@ -1,3 +1,9 @@
+---
+name: servicenow-troubleshooting
+scope: project
+recommended: false
+version: 1.0.0
+---
 # ServiceNow Troubleshooting Skill
 
 This skill teaches Claude how to debug ServiceNow issues using system logs, AI Agent execution traces, and background scripts.

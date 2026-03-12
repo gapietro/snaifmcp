@@ -9,6 +9,75 @@ import { safeExec } from "../shared/exec-utils.js";
 import { directoryExists, fileExists, extractDescription } from "../shared/fs-utils.js";
 import type { ResourceInfo } from "./types.js";
 
+export interface SkillFrontmatter {
+  name?: string;
+  description?: string;
+  scope?: "global" | "project";
+  recommended?: boolean;
+  version?: string;
+  triggers?: string[];
+  tags?: string[];
+}
+
+/**
+ * Parse YAML frontmatter from a SKILL.md file
+ */
+export async function parseSkillFrontmatter(skillFilePath: string): Promise<SkillFrontmatter> {
+  try {
+    const content = await fs.readFile(skillFilePath, "utf-8");
+    if (!content.startsWith("---")) return {};
+
+    const endIndex = content.indexOf("---", 3);
+    if (endIndex === -1) return {};
+
+    const yamlBlock = content.slice(3, endIndex).trim();
+    const result: SkillFrontmatter = {};
+
+    for (const line of yamlBlock.split("\n")) {
+      const colonIdx = line.indexOf(":");
+      if (colonIdx === -1) continue;
+
+      const key = line.slice(0, colonIdx).trim();
+      const rawVal = line.slice(colonIdx + 1).trim();
+
+      if (!key || rawVal === "") continue;
+
+      // Handle multi-line arrays (YAML list items starting with -)
+      // We accumulate them below in a second pass
+      if (key === "name") result.name = rawVal.replace(/^["']|["']$/g, "");
+      else if (key === "description") result.description = rawVal.replace(/^["'>]/, "").trim();
+      else if (key === "scope") result.scope = rawVal as "global" | "project";
+      else if (key === "recommended") result.recommended = rawVal === "true";
+      else if (key === "version") result.version = rawVal;
+    }
+
+    // Parse array fields (triggers, tags) — items appear as "  - value" lines
+    const lines = yamlBlock.split("\n");
+    let inTriggers = false;
+    let inTags = false;
+    const triggers: string[] = [];
+    const tags: string[] = [];
+
+    for (const line of lines) {
+      if (/^triggers\s*:/.test(line)) { inTriggers = true; inTags = false; continue; }
+      if (/^tags\s*:/.test(line)) { inTags = true; inTriggers = false; continue; }
+      if (/^\w/.test(line) && line.includes(":")) { inTriggers = false; inTags = false; continue; }
+      if (line.trim().startsWith("- ")) {
+        const val = line.trim().slice(2).trim();
+        if (inTriggers) triggers.push(val);
+        if (inTags) tags.push(val);
+      }
+    }
+
+    if (triggers.length > 0) result.triggers = triggers;
+    if (tags.length > 0) result.tags = tags;
+
+    return result;
+  } catch {
+    return {};
+  }
+}
+
 /**
  * Check if cache is stale
  */
@@ -149,8 +218,14 @@ export async function listSkills(
             resource.hasExamples = false;
           }
 
+          // Parse frontmatter for scope/recommended/tags
+          const frontmatter = await parseSkillFrontmatter(skillFile);
+          resource.scope = frontmatter.scope || "project";
+          resource.recommended = frontmatter.recommended ?? false;
+          resource.tags = frontmatter.tags;
+
           if (verbose) {
-            resource.description = await extractDescription(skillFile);
+            resource.description = frontmatter.description || await extractDescription(skillFile);
           }
 
           resources.push(resource);

@@ -2,6 +2,23 @@
 
 MCP (Model Context Protocol) server providing 30 tools for Now Assist POC development and ServiceNow integration.
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Quick Start](#quick-start)
+- [Usage Examples](#usage-examples)
+- [Tools Reference](#tools-reference)
+- [Configuration](#configuration)
+- [Project Structure](#project-structure)
+- [Development](#development)
+- [Architecture](#architecture)
+- [Error Handling](#error-handling)
+- [Troubleshooting](#troubleshooting)
+- [Dependencies](#dependencies)
+- [See Also](#see-also)
+
+---
+
 ## Overview
 
 The Foundry MCP server provides three sets of tools:
@@ -16,31 +33,44 @@ The Foundry MCP server provides three sets of tools:
 ### Prerequisites
 
 - Node.js 18+
-- **GitHub CLI authenticated** (`gh auth login`) - required for private golden repo access
+- Claude Code installed
+- **GitHub CLI authenticated** (`gh auth login`) - required for private golden repo access. New to GitHub CLI? See the [Getting Started training](https://github.com/Now-AI-Foundry/docs-github-standards/tree/main/training) for setup instructions.
 
-### 1. Install and Build
+### Option A: Let Claude Code set it up for you
+
+Open Claude Code in any directory and say:
+
+> Clone the tool-foundry-mcp repo from Now-AI-Foundry, install dependencies, build it, and add it as a user-scoped MCP server called "foundry".
+
+Claude Code will handle cloning, installing, building, and configuring the MCP server for you.
+
+### Option B: Manual setup
+
+**1. Clone and build**
 
 ```bash
-cd foundry-mcp
+gh repo clone Now-AI-Foundry/tool-foundry-mcp
+cd tool-foundry-mcp
 npm install
 npm run build
 ```
 
-### 2. Configure Claude Code
+> **Note:** If you opened a terminal from the GitHub repo page, you are already in the `tool-foundry-mcp` directory and can skip the `cd` step.
 
-**Recommended: Use the official CLI command**
+**2. Register the MCP server with Claude Code**
 
 ```bash
 # Add foundry MCP server (user scope - available in all projects)
 claude mcp add --scope user --transport stdio foundry -- \
-  node /absolute/path/to/foundry-mcp/dist/index.js
+  node /absolute/path/to/tool-foundry-mcp/dist/index.js
 
 # Or add to current project only (local scope)
 claude mcp add --transport stdio foundry -- \
-  node /absolute/path/to/foundry-mcp/dist/index.js
+  node /absolute/path/to/tool-foundry-mcp/dist/index.js
 ```
 
-**Alternative: Manual configuration**
+<details>
+<summary>Alternative: Manual JSON configuration</summary>
 
 Add to `~/.claude.json` (note: `.json` not `.claude/config.json`):
 
@@ -50,13 +80,13 @@ Add to `~/.claude.json` (note: `.json` not `.claude/config.json`):
     "foundry": {
       "type": "stdio",
       "command": "node",
-      "args": ["/absolute/path/to/foundry-mcp/dist/index.js"]
+      "args": ["/absolute/path/to/tool-foundry-mcp/dist/index.js"]
     }
   }
 }
 ```
 
-**Or** create `.mcp.json` in your project root (for team sharing):
+Or create `.mcp.json` in your project root (for team sharing):
 
 ```json
 {
@@ -64,15 +94,17 @@ Add to `~/.claude.json` (note: `.json` not `.claude/config.json`):
     "foundry": {
       "type": "stdio",
       "command": "node",
-      "args": ["/absolute/path/to/foundry-mcp/dist/index.js"]
+      "args": ["/absolute/path/to/tool-foundry-mcp/dist/index.js"]
     }
   }
 }
 ```
 
-**Important:** After configuration, **restart Claude Code completely** (exit and relaunch) for changes to take effect.
+</details>
 
-**Verify installation:**
+**3. Restart and verify**
+
+**Important:** Restart Claude Code completely (exit and relaunch) for changes to take effect.
 
 ```bash
 # Check if foundry is listed and connected
@@ -82,12 +114,66 @@ claude mcp list
 /mcp
 ```
 
-### 3. Run Tests
+### Run Tests
 
 ```bash
 npm run test:all
 # Expected: 152 total tests (55 + 65 + 22 + 10)
 ```
+
+---
+
+## Usage Examples
+
+Once the MCP server is running, just talk to Claude Code naturally. Here are some starter phrases organized by workflow:
+
+### Starting a new POC
+
+> "Create a new POC called acme-widget"
+>
+> "Bootstrap a project using the sparc-starter template"
+>
+> "Show me what templates are available"
+
+### Working with Foundry resources
+
+> "What skills and contexts are available in the golden repo?"
+>
+> "Add the testing-patterns skill to my project"
+>
+> "Search Foundry resources for GlideRecord examples"
+>
+> "Sync my project with the latest golden repo content"
+
+### Connecting to ServiceNow
+
+> "Connect to myinstance.service-now.com"
+>
+> "Check my ServiceNow connection status"
+>
+> "Query the incident table for active P1s"
+>
+> "Show me the syslogs from the last hour"
+
+### AI Agents and Now Assist Skills
+
+> "List all AI Agents on the instance"
+>
+> "Show me the config for the Incident Triage agent"
+>
+> "What Now Assist skills are active?"
+>
+> "Show agent errors from the last 24 hours"
+
+### Contributing back
+
+> "Create a new context file for GlideRecord best practices"
+>
+> "Validate my new resource before promoting"
+>
+> "Promote this resource to the golden repo"
+
+You don't need to reference tool names directly - Claude Code maps your intent to the right Foundry tool automatically.
 
 ---
 

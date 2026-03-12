@@ -373,12 +373,14 @@ export class ServiceNowClient {
     table: string,
     query?: string,
     fields?: string[],
-    limit: number = 100
+    limit: number = 100,
+    displayValues: boolean = false
   ): Promise<TableAPIResponse> {
     const params = new URLSearchParams();
     if (query) params.set('sysparm_query', query);
     if (fields?.length) params.set('sysparm_fields', fields.join(','));
     params.set('sysparm_limit', String(limit));
+    if (displayValues) params.set('sysparm_display_value', 'all');
 
     const endpoint = `/api/now/table/${table}?${params.toString()}`;
     return this.requestWithRetry<TableAPIResponse>(endpoint);

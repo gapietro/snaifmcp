@@ -1,3 +1,9 @@
+---
+name: api-integration
+scope: project
+recommended: true
+version: 1.0.0
+---
 # Skill: API Integration
 
 > Helps you build ServiceNow REST API integrations for Now Assist POCs.

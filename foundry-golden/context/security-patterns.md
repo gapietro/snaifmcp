@@ -385,6 +385,58 @@ catch (e) {
 | `sn_mcp_client.viewer` | MCP Client read-only |
 | `sn_voice_aia.admin` | Voice agent configuration access |
 
+### Role Prerequisites Mapping
+
+This section maps which roles unlock access to which table groups. An admin user without the correct AI-specific roles will be blocked from agent and skill tables.
+
+| Role | Tables Unlocked | Access Level | Required For |
+|------|----------------|--------------|--------------|
+| `sn_aia.admin` | `sn_aia_agent`, `sn_aia_tool`, `sn_aia_agent_tool_m2m`, `sn_aia_usecase`, `sn_aia_strategy`, `sn_aia_team`, `sn_aia_team_member`, `sn_aia_trigger_configuration`, `sn_aia_agent_config`, `sn_aia_execution_plan`, `sn_aia_execution_task`, `sn_aia_tools_execution`, `sn_aia_message`, `sn_aia_property` | Full CRUD | Agent creation, tool management, execution monitoring, property configuration |
+| `sn_aia.viewer` | Same `sn_aia_*` tables as above | Read-only | Agent discovery, viewing configurations, reading execution logs, reporting |
+| `agent_role_config_admin` | `sys_agent_access_role_configuration` | Full CRUD | Configuring which user roles can access which agents |
+| `agent_role_config_viewer` | `sys_agent_access_role_configuration` | Read-only | Viewing agent role assignments |
+| `admin` + `com.sn.generative.ai` plugin | `sys_genai_skill` / `sn_gai_skill`, `sys_genai_prompt_template`, `sys_genai_skill_version` | Full CRUD | GenAI Controller skill management, prompt template editing, skill versioning |
+| `now_assist_admin` | `sn_nowassist_skill_config`, `sys_one_extend_capability`, `sys_one_extend_capability_definition`, `sys_one_extend_definition_config`, `sys_one_extend_definition_attribute`, `sys_generative_ai_config` | Full CRUD | Now Assist skill configuration, capability registration, LLM prompt management |
+| `sn_mcp_client.admin` | `sn_mcp_server`, `sn_mcp_client_server_session_mapping`, `sn_mcp_execution_logs` | Full CRUD | MCP server registration, session management, execution log review |
+| `sn_mcp_client.viewer` | Same `sn_mcp_*` tables as above | Read-only | Viewing MCP server configurations and logs |
+| `sn_voice_aia.admin` | Voice agent tables (`sn_voice_aia_*`) | Full CRUD | Voice agent configuration and deployment |
+
+**Common Access Denied Scenarios:**
+
+| Symptom | Missing Role | Fix |
+|---------|-------------|-----|
+| Cannot create/edit agents in Agent Studio | `sn_aia.admin` | Assign `sn_aia.admin` to the user |
+| Cannot view agent execution history | `sn_aia.viewer` (minimum) | Assign `sn_aia.viewer` or `sn_aia.admin` |
+| Agent tool API returns 403 | `sn_aia.admin` | Assign `sn_aia.admin`; base `admin` alone is not sufficient |
+| Cannot register MCP servers | `sn_mcp_client.admin` | Assign `sn_mcp_client.admin` |
+| Cannot configure Now Assist skills | `now_assist_admin` | Assign `now_assist_admin` |
+| GenAI Controller tables not accessible | `admin` + GenAI plugin not activated | Activate `com.sn.generative.ai` plugin |
+| Cannot modify agent role assignments | `agent_role_config_admin` | Assign `agent_role_config_admin` |
+
+**Verification Script:**
+```javascript
+// Check if current user has required AI roles
+var requiredRoles = ['sn_aia.admin', 'now_assist_admin', 'sn_mcp_client.admin'];
+var missingRoles = [];
+
+for (var i = 0; i < requiredRoles.length; i++) {
+    if (!gs.hasRole(requiredRoles[i])) {
+        missingRoles.push(requiredRoles[i]);
+    }
+}
+
+if (missingRoles.length > 0) {
+    gs.info('Missing AI roles: ' + missingRoles.join(', '));
+} else {
+    gs.info('All required AI roles are assigned.');
+}
+```
+
+**Important Notes:**
+- The base `admin` role does NOT automatically grant access to `sn_aia_*` tables. The `sn_aia.admin` role is required separately.
+- Role requirements vary by ServiceNow version. On pre-Zurich instances, some tables may be accessible with fewer role requirements.
+- For programmatic access via REST API, the authenticating user must have the appropriate roles listed above.
+
 ### GlideRecordSecure in AI Agent Scripts
 
 **CRITICAL:** AI agent tool scripts MUST use `GlideRecordSecure` (not `GlideRecord`) and MUST call `addUserEncodedQuery()`:

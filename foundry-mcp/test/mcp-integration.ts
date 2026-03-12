@@ -23,8 +23,8 @@ const SERVER_PATH = path.resolve(__dirname, "../dist/index.js");
 const TEST_DIR = path.resolve(__dirname, "../.test-output/mcp-integration");
 
 // Expected tool counts
-const EXPECTED_FOUNDRY_TOOLS = 12;
-const EXPECTED_SERVICENOW_TOOLS = 18; // 8 core + 6 AIA + 4 skill
+const EXPECTED_FOUNDRY_TOOLS = 13;
+const EXPECTED_SERVICENOW_TOOLS = 25; // 8 core + 11 AIA + 4 skill + 2 flow
 const EXPECTED_TOTAL_TOOLS = EXPECTED_FOUNDRY_TOOLS + EXPECTED_SERVICENOW_TOOLS;
 
 let msgId = 0;
@@ -210,13 +210,15 @@ async function runTests(): Promise<void> {
       t.fail("ServiceNow status", `Unexpected response: ${statusText.substring(0, 100)}`);
     }
 
-    // 4. Call foundry_init with test directory
+    // 4. Call foundry_init with test directory (pre-create it, init bootstraps in-place)
     t.log("Testing foundry_init...", "header");
+    const projectPath = path.join(TEST_DIR, "mcp-test-project");
+    await fs.mkdir(projectPath, { recursive: true });
     const initProjectResponse = await sendAndReceive(proc, "tools/call", {
       name: "foundry_init",
       arguments: {
+        path: projectPath,
         projectName: "mcp-test-project",
-        path: TEST_DIR,
       },
     }, 30000); // Longer timeout for init (may need to clone golden repo)
 
@@ -225,11 +227,10 @@ async function runTests(): Promise<void> {
     const initText = initContent?.[0]?.text || "";
     const isError = initProjResult?.isError === true;
 
-    if (!isError && initText.includes("successfully")) {
-      t.pass("foundry_init", "Project created successfully via MCP");
+    if (!isError && initText.includes("initialized")) {
+      t.pass("foundry_init", "Project initialized successfully via MCP");
 
-      // Verify project files exist
-      const projectPath = path.join(TEST_DIR, "mcp-test-project");
+      // Verify project files exist in the target directory
       try {
         const stat = await fs.stat(projectPath);
         if (stat.isDirectory()) {

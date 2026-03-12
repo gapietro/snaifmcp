@@ -1,3 +1,9 @@
+---
+name: now-assist-skill-builder
+scope: project
+recommended: false
+version: 1.0.0
+---
 # Skill: Now Assist Skill Builder
 
 > Helps you create new Now Assist skills for the ServiceNow platform.

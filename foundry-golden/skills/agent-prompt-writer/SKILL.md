@@ -1,3 +1,9 @@
+---
+name: agent-prompt-writer
+scope: project
+recommended: false
+version: 1.0.0
+---
 # Skill: Agent Prompt Writer
 
 > Take a use case, strategy, and tool list — produce effective agent instructions with role definition, workflow, tool usage guidance, guardrails, and output format.

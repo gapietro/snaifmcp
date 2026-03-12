@@ -1,3 +1,9 @@
+---
+name: deployment-automation
+scope: project
+recommended: true
+version: 1.0.0
+---
 # Deployment Automation Skill
 
 This skill teaches Claude how to automate ServiceNow deployments, including update sets, CI/CD pipelines, and application publishing.

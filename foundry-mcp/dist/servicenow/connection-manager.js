@@ -108,8 +108,10 @@ export class ConnectionManager {
                     clientId: params.clientId,
                     clientSecret: params.clientSecret,
                 };
+            case 'profile':
+                throw new ServiceNowError(ServiceNowErrorType.AUTHENTICATION_FAILED, 'Profile auth requires a profile name', undefined, 'Provide the profile parameter with the name of the profile to use');
             default:
-                throw new ServiceNowError(ServiceNowErrorType.AUTHENTICATION_FAILED, `Unknown auth type: ${authType}`, undefined, 'Use basic, token, or oauth');
+                throw new ServiceNowError(ServiceNowErrorType.AUTHENTICATION_FAILED, `Unknown auth type: ${authType}`, undefined, 'Use basic, token, oauth, or profile');
         }
     }
     /**

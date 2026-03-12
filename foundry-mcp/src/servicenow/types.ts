@@ -3,7 +3,7 @@
  */
 
 // Authentication types
-export type AuthType = 'basic' | 'oauth' | 'token';
+export type AuthType = 'basic' | 'oauth' | 'token' | 'profile';
 
 export interface BasicAuthConfig {
   type: 'basic';

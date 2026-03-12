@@ -197,6 +197,12 @@ This is a strict requirement with NO exceptions - not even for "small" or "confi
 - Increment daily counter (XX) for multiple same-day merges
 - Reset daily counter to 01 on a new day
 
+**Commit format — REQUIRED:**
+```
+chore: bump version to YYYY.MM.DDXX (#PR_NUMBER)
+```
+The `(#PR_NUMBER)` suffix is **mandatory**. The branch-protection workflow validates all pushes to main and will flag the commit as a direct push violation without it. Use the PR number that was just merged.
+
 See full version history: `CHANGELOG.md`
 
 ---

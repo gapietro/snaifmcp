@@ -1,3 +1,9 @@
+---
+name: testing-patterns
+scope: project
+recommended: true
+version: 1.0.0
+---
 # Testing Patterns Skill
 
 This skill teaches Claude how to write effective tests for ServiceNow development, including unit testing, ATF (Automated Test Framework), and mocking patterns.

@@ -7,8 +7,11 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { connectionManager } from './connection-manager.js';
 import { ServiceNowClient } from './client.js';
 import { ServiceNowError, ServiceNowErrorType } from './types.js';
-import { AIA_EXECUTION_PLAN_TABLES } from './table-discovery.js';
-import { ensureScriptApi, executeViaScriptApi } from './script-api.js';
+import { AIA_EXECUTION_PLAN_TABLES, AIA_TOOL_EXECUTION_TABLES, AIA_AGENT_TABLES } from './table-discovery.js';
+import { ensureScriptApi, executeViaScriptApi, getLastDeploymentError } from './script-api.js';
+
+/** Role hint included in AIA logs error messages when table access fails. */
+export const AIA_LOGS_ROLE_HINT = 'Ensure your user has the `sn_aia.admin` role for AI Agent table access.';
 
 // Tool definitions
 export const SERVICENOW_CONNECT_TOOL: Tool = {
@@ -805,7 +808,9 @@ This may mean:
 - Your user lacks access to AIA tables
 - The table has a different name in your ServiceNow version
 
-Check that Now Assist or AI Agent is enabled on this instance.`,
+Check that Now Assist or AI Agent is enabled on this instance.
+
+${AIA_LOGS_ROLE_HINT}`,
         }],
         isError: true,
       };
@@ -831,11 +836,8 @@ Try expanding the time range or adjusting filters.`,
 
     if (includeToolCalls) {
       const executionIds = executions.map(e => e.sys_id as string);
-      const toolTables = [
-        'sys_aia_tool_execution',
-        'sn_agent_tool_execution',
-        'x_snc_aia_tool_execution',
-      ];
+      // Use the single source of truth from table-discovery.ts (Issue #46)
+      const toolTables = AIA_TOOL_EXECUTION_TABLES;
 
       for (const toolTable of toolTables) {
         try {
@@ -1057,7 +1059,19 @@ Example:
   // Parse arguments
   const table = args.table as string;
   const query = args.query as string | undefined;
-  const fields = args.fields as string[] | undefined;
+  // args.fields may arrive as a JSON string ("["a","b"]") when Claude serializes
+  // an array parameter as a string — parse it defensively.
+  let fields: string[] | undefined;
+  if (Array.isArray(args.fields)) {
+    fields = args.fields as string[];
+  } else if (typeof args.fields === 'string' && args.fields.trim()) {
+    try {
+      const parsed = JSON.parse(args.fields);
+      fields = Array.isArray(parsed) ? parsed : [args.fields];
+    } catch {
+      fields = args.fields.split(',').map((f: string) => f.trim()).filter(Boolean);
+    }
+  }
   const limit = Math.min(Math.max((args.limit as number) || 50, 1), 500);
   const orderBy = args.orderBy as string | undefined;
   const orderDirection = (args.orderDirection as string) || 'desc';
@@ -1492,22 +1506,80 @@ interface ScriptResult {
   success: boolean;
 }
 
+// ============================================================================
+// Diagnostic Tracking
+// ============================================================================
+
+interface TierDiagnostic {
+  tier: string;
+  attempted: boolean;
+  error?: string;
+  httpStatus?: number;
+  details?: string;
+  suggestion?: string;
+}
+
+function extractHttpStatus(msg: string): number | null {
+  const match = msg.match(/\b([345]\d{2})\b/);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+function formatDiagnosticReport(diagnostics: TierDiagnostic[]): string {
+  const lines: string[] = [
+    'SCRIPT EXECUTION DIAGNOSTIC REPORT',
+    '\u2550'.repeat(40),
+  ];
+
+  for (const d of diagnostics) {
+    if (!d.attempted) continue;
+    lines.push(`Tier: ${d.tier}`);
+    if (d.error) {
+      const statusPrefix = d.httpStatus ? `${d.httpStatus} — ` : '';
+      lines.push(`  Error: ${statusPrefix}${d.error}`);
+    }
+    if (d.suggestion) {
+      lines.push(`  Fix: ${d.suggestion}`);
+    }
+    if (d.details) {
+      lines.push(`  Details: ${d.details}`);
+    }
+    lines.push('');
+  }
+
+  lines.push('TROUBLESHOOTING STEPS:');
+  lines.push('1. Verify your user has the "admin" role');
+  lines.push('2. Check Table API works (try servicenow_query on "incident")');
+  lines.push('3. Check sys_ws_definition table ACLs for Scripted REST API access');
+  lines.push('4. Check sysauto_script table ACLs for scheduled job access');
+  lines.push('5. Manually create the Scripted REST API via Studio if automated deployment is blocked');
+
+  return lines.join('\n');
+}
+
+// ============================================================================
+// Script Execution (Two-Tier Fallback)
+// ============================================================================
+
 async function executeScript(
   client: ServiceNowClient,
   script: string,
   timeout: number,
-  description: string
+  _description: string
 ): Promise<ScriptResult> {
-  // Fallback chain:
+  // Two-tier fallback:
   // 1. Scripted REST API (best: server-side gs.info capture via GlideEvaluator)
-  // 2. sys_script_fix record (fallback: monkey-patch + syslog polling)
-  // 3. Direct evaluation endpoints (last resort: no gs.info capture)
+  // 2. Scheduled Script Job (sysauto_script with run_type='once' + syslog polling)
 
-  // --- Attempt 1: Scripted REST API ---
+  const diagnostics: TierDiagnostic[] = [];
+
+  // --- Tier 1: Scripted REST API ---
+  const tier1: TierDiagnostic = { tier: 'Scripted REST API', attempted: true };
   try {
     const apiState = await ensureScriptApi(client);
     if (apiState) {
-      const apiResult = await executeViaScriptApi(client, script, timeout);
+      const apiResult = await executeViaScriptApi(
+        client, script, timeout, apiState.workingUrl
+      );
       const outputLines = apiResult.output.length > 0
         ? apiResult.output.join('\n')
         : apiResult.returnValue || '(no output)';
@@ -1518,62 +1590,51 @@ async function executeScript(
         success: apiResult.success,
       };
     }
-  } catch {
-    // Scripted REST API call failed — fall through to next method
+    // ensureScriptApi returned null — deployment failed
+    const lastError = getLastDeploymentError(client.getInstanceUrl());
+    tier1.error = lastError || 'Scripted REST API deployment failed (no details available)';
+    tier1.httpStatus = lastError ? (extractHttpStatus(lastError) ?? undefined) : undefined;
+    tier1.suggestion = 'Check admin role and sys_ws_definition table ACLs';
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    tier1.error = msg;
+    tier1.httpStatus = extractHttpStatus(msg) ?? undefined;
+    tier1.suggestion = 'Check admin role and sys_ws_definition table ACLs';
   }
+  diagnostics.push(tier1);
 
-  // --- Attempt 2: sys_script_fix record ---
+  // --- Tier 2: Scheduled Script Job (sysauto_script) ---
+  const tier2: TierDiagnostic = { tier: 'Scheduled Script Job', attempted: true };
   try {
-    return await executeViaScriptRecord(client, script, timeout, description);
-  } catch {
-    // Fall through to direct endpoints
+    return await executeViaScheduledJob(client, script, timeout);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    tier2.error = msg;
+    tier2.httpStatus = extractHttpStatus(msg) ?? undefined;
+    tier2.suggestion = 'Check sysauto_script table access and scheduled job execution privileges';
+    tier2.details = 'sysauto_script with run_type=once should be executed by the scheduler';
   }
+  diagnostics.push(tier2);
 
-  // --- Attempt 3: Direct evaluation endpoints ---
-  const directEndpoints = [
-    { path: '/api/now/sp/widget/script', method: 'POST' as const },
-    { path: '/api/sn_sc/servicecatalog/items/script', method: 'POST' as const },
-  ];
-
-  for (const endpoint of directEndpoints) {
-    try {
-      const response = await client.requestWithRetry<Record<string, unknown>>(
-        endpoint.path,
-        {
-          method: endpoint.method,
-          body: { script, timeout: timeout * 1000 },
-          timeout: (timeout + 5) * 1000,
-        }
-      );
-
-      if (response.result) {
-        return {
-          output: String(response.result),
-          success: true,
-        };
-      }
-    } catch {
-      continue;
-    }
-  }
-
-  // All methods failed
+  // All tiers failed — throw with full diagnostic report
+  const report = formatDiagnosticReport(diagnostics);
   throw new ServiceNowError(
     ServiceNowErrorType.SCRIPT_ERROR,
-    'No script execution endpoint available on this instance',
-    { triedEndpoints: ['Scripted REST API', 'sys_script_fix', ...directEndpoints.map(e => e.path)] },
-    'Ensure your user has admin role, or ask an admin to install the Foundry Script Runner Scripted REST API'
+    'All script execution methods failed',
+    { diagnostics },
+    report
   );
 }
 
-async function executeViaScriptRecord(
+// ============================================================================
+// Tier 2: Scheduled Script Job (sysauto_script)
+// ============================================================================
+
+async function executeViaScheduledJob(
   client: ServiceNowClient,
   script: string,
-  timeout: number,
-  description: string
+  timeout: number
 ): Promise<ScriptResult> {
-  // Monkey-patch gs.info to capture output, then poll syslog for results.
-  // Uses a unique marker to avoid collisions with other scripts.
   const markerId = `__FMCP_${Date.now()}__`;
 
   const wrappedScript = `
@@ -1596,91 +1657,115 @@ gs.info('${markerId}' + JSON.stringify(__output));
 
   const startTime = Date.now();
 
-  // Create a temporary fix script record
+  // Create a scheduled script job that runs once immediately
+  const now = new Date();
+  const runStart = now.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
+
   const createResponse = await client.requestWithRetry<{ result: { sys_id: string } }>(
-    '/api/now/table/sys_script_fix',
+    '/api/now/table/sysauto_script',
     {
       method: 'POST',
       body: {
-        name: `Claude_Temp_${Date.now()}`,
+        name: `Foundry_Exec_${Date.now()}`,
         script: wrappedScript,
-        description: description,
+        run_type: 'once',
+        run_start: runStart,
         active: true,
       },
       timeout: 10000,
     }
   );
 
-  const scriptSysId = createResponse.result?.sys_id;
-  if (!scriptSysId) {
-    throw new Error('Failed to create script record');
+  const jobSysId = createResponse.result?.sys_id;
+  if (!jobSysId) {
+    throw new Error('Failed to create scheduled script job — no sys_id returned');
   }
 
-  // Trigger execution by setting state to ready
-  try {
-    await client.requestWithRetry<Record<string, unknown>>(
-      `/api/now/table/sys_script_fix/${scriptSysId}`,
-      {
-        method: 'PATCH',
-        body: { state: 'ready' },
-        timeout: timeout * 1000,
+  // Poll syslog with exponential backoff for the marker
+  const backoffSchedule = [1000, 2000, 3000, 5000, 5000, 10000, 10000]; // 36s total
+  let found = false;
+  let outputResult = '';
+
+  for (const delay of backoffSchedule) {
+    const elapsed = Date.now() - startTime;
+    if (elapsed > timeout * 1000) break;
+
+    await new Promise(resolve => setTimeout(resolve, delay));
+
+    try {
+      const logResponse = await client.queryTable(
+        'syslog',
+        `messageLIKE${markerId}^sys_created_on>=javascript:gs.minutesAgoStart(5)^ORDERBYDESCsys_created_on`,
+        ['message'],
+        1
+      );
+
+      if (logResponse.result && logResponse.result.length > 0) {
+        const logMessage = logResponse.result[0].message as string;
+        const markerIndex = logMessage.indexOf(markerId);
+        if (markerIndex !== -1) {
+          const jsonPart = logMessage.substring(markerIndex + markerId.length);
+          try {
+            const outputArray = JSON.parse(jsonPart) as string[];
+            outputResult = outputArray.join('\n');
+          } catch {
+            outputResult = logMessage;
+          }
+          found = true;
+          break;
+        }
       }
-    );
-  } catch {
-    // Execution trigger might return an error but still execute
+    } catch {
+      // Syslog query failed — continue polling
+    }
   }
 
-  // Wait for execution to complete
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  const duration = Date.now() - startTime;
 
-  // Check syslog for output using the unique marker
-  const logResponse = await client.queryTable(
-    'syslog',
-    `messageLIKE${markerId}^sys_created_on>=javascript:gs.minutesAgoStart(5)^ORDERBYDESCsys_created_on`,
-    ['message'],
-    1
-  );
-
-  // Clean up — delete the temp script
+  // Clean up the scheduled job record
   try {
     await client.requestWithRetry<Record<string, unknown>>(
-      `/api/now/table/sys_script_fix/${scriptSysId}`,
+      `/api/now/table/sysauto_script/${jobSysId}`,
       { method: 'DELETE', timeout: 5000 }
     );
   } catch {
     // Cleanup failure is not critical
   }
 
-  const duration = Date.now() - startTime;
-
-  if (logResponse.result && logResponse.result.length > 0) {
-    const logMessage = logResponse.result[0].message as string;
-    const markerIndex = logMessage.indexOf(markerId);
-    if (markerIndex !== -1) {
-      const jsonPart = logMessage.substring(markerIndex + markerId.length);
-      try {
-        const outputArray = JSON.parse(jsonPart) as string[];
-        return {
-          output: outputArray.join('\n'),
-          duration,
-          success: true,
-        };
-      } catch {
-        return {
-          output: logMessage,
-          duration,
-          success: true,
-        };
-      }
-    }
+  if (found) {
+    return {
+      output: outputResult || '(no output)',
+      duration,
+      success: true,
+    };
   }
 
-  return {
-    output: '(no output captured - use gs.info() to return values)',
-    duration,
-    success: true,
-  };
+  // Timeout — check the job state for diagnostics
+  let jobState = 'unknown';
+  try {
+    const jobResponse = await client.queryTable(
+      'sysauto_script',
+      `sys_id=${jobSysId}`,
+      ['state', 'run_count'],
+      1
+    );
+    if (jobResponse.result && jobResponse.result.length > 0) {
+      jobState = `state=${jobResponse.result[0].state || 'unknown'}, run_count=${jobResponse.result[0].run_count || '0'}`;
+    }
+  } catch {
+    // Can't check job state
+  }
+
+  throw new Error(
+    `Script marker not found in syslog after ${Math.round(duration / 1000)}s. ` +
+    `Job ${jobSysId}: ${jobState}. ` +
+    `The scheduled job may not have been executed by the scheduler.`
+  );
 }
+
+// ============================================================================
+// Error Formatting
+// ============================================================================
 
 function formatScriptError(error: unknown, mode: string): ToolResult {
   if (error instanceof ServiceNowError) {
@@ -1691,8 +1776,13 @@ function formatScriptError(error: unknown, mode: string): ToolResult {
 Required roles typically include: admin, or script execution roles.`;
     }
 
+    // Display the diagnostic report if present
     if (error.suggestion) {
-      message += `\n\nSuggestion: ${error.suggestion}`;
+      if (error.suggestion.includes('DIAGNOSTIC REPORT')) {
+        message += `\n\n${error.suggestion}`;
+      } else {
+        message += `\n\nSuggestion: ${error.suggestion}`;
+      }
     }
 
     return {
@@ -1720,35 +1810,78 @@ This may be due to:
 // Instance Info Handler
 // ============================================================================
 
+/** System properties to query for version detection (ordered by reliability). */
+export const VERSION_PROPERTIES = [
+  'glide.buildtag',
+  'glide.buildname',
+  'glide.builddate',
+  'glide.war',
+];
+
+/** Extract a ServiceNow release name (e.g. "Vancouver") from a build tag string. */
+export function parseVersionFromBuildTag(buildTag: string): string | null {
+  if (!buildTag || buildTag.trim() === '') return null;
+  const match = buildTag.match(/glide-(\w+)-/i);
+  if (!match) return null;
+  return match[1].charAt(0).toUpperCase() + match[1].slice(1);
+}
+
+/** Configuration for a feature's plugin detection. */
+export interface FeaturePluginConfig {
+  plugins: string[];
+  pluginTables: string[];
+  pluginQueryType: 'exact' | 'like';
+  tables: string[];
+  description: string;
+}
+
 // Known feature plugins and their identifiers
-const FEATURE_PLUGINS: Record<string, { plugins: string[]; tables: string[]; description: string }> = {
+export const FEATURE_PLUGINS: Record<string, FeaturePluginConfig> = {
   now_assist: {
-    plugins: ['com.snc.now_assist', 'sn_now_assist', 'com.glide.now_assist'],
-    tables: ['sys_now_assist_config', 'sn_now_assist_skill'],
+    plugins: [
+      'com.snc.now_assist', 'sn_now_assist', 'com.glide.now_assist',
+      'com.snc.genai_controller', 'com.snc.gen_ai', 'com.glide.genai',
+    ],
+    pluginTables: ['v_plugin', 'sys_plugins', 'sys_store_app'],
+    pluginQueryType: 'like',
+    tables: ['sys_now_assist_config', 'sn_now_assist_skill', 'sn_gen_ai_skill'],
     description: 'Now Assist AI capabilities',
   },
   virtual_agent: {
-    plugins: ['com.glide.cs.chatbot', 'com.snc.virtual_agent'],
+    plugins: ['com.glide.cs.chatbot', 'com.snc.virtual_agent', 'sn_va', 'com.snc.cs.chatbot'],
+    pluginTables: ['v_plugin', 'sys_plugins', 'sys_store_app'],
+    pluginQueryType: 'like',
     tables: ['sys_cs_topic', 'sys_cb_topic'],
     description: 'Virtual Agent chatbot',
   },
   aia: {
-    plugins: ['com.snc.aia', 'sn_aia', 'com.glide.aia'],
-    tables: ['sn_aia_agent', 'sn_aia_execution_plan'],
+    plugins: [
+      'com.snc.aia', 'sn_aia', 'com.glide.aia',
+      'com.snc.ai_agents', 'com.snc.agentic',
+    ],
+    pluginTables: ['v_plugin', 'sys_plugins', 'sys_store_app'],
+    pluginQueryType: 'like',
+    tables: [...AIA_AGENT_TABLES, ...AIA_EXECUTION_PLAN_TABLES],
     description: 'AI Agents (Agentic AI)',
   },
   predictive_intelligence: {
     plugins: ['com.glide.platform_ml'],
+    pluginTables: ['v_plugin', 'sys_plugins'],
+    pluginQueryType: 'exact',
     tables: ['ml_capability_definition'],
     description: 'Predictive Intelligence / ML',
   },
   flow_designer: {
     plugins: ['com.glide.hub.flow_designer'],
+    pluginTables: ['v_plugin', 'sys_plugins'],
+    pluginQueryType: 'exact',
     tables: ['sys_hub_flow'],
     description: 'Flow Designer automation',
   },
   integration_hub: {
     plugins: ['com.glide.hub.integration'],
+    pluginTables: ['v_plugin', 'sys_plugins'],
+    pluginQueryType: 'exact',
     tables: ['sys_hub_spoke'],
     description: 'Integration Hub spokes',
   },
@@ -1942,31 +2075,73 @@ async function getInstanceInfo(client: ServiceNowClient): Promise<{
   buildTag?: string;
   buildDate?: string;
 }> {
-  // Query sys_properties for version info
-  const properties = ['glide.buildtag', 'glide.buildname', 'glide.builddate'];
   const results: Record<string, string> = {};
 
-  for (const propName of properties) {
+  // Strategy 1: Individual property queries (most reliable)
+  for (const propName of VERSION_PROPERTIES) {
     try {
       const response = await client.queryTable(
         'sys_properties',
         `name=${propName}`,
-        ['value'],
+        ['name', 'value'],
         1
       );
       if (response.result && response.result.length > 0) {
         results[propName] = response.result[0].value as string;
       }
     } catch {
-      // Property might not exist
+      // Property not accessible individually
     }
   }
 
-  const buildTag = results['glide.buildtag'] || '';
-  const versionMatch = buildTag.match(/glide-(\w+)-/i);
-  const version = versionMatch
-    ? versionMatch[1].charAt(0).toUpperCase() + versionMatch[1].slice(1)
-    : results['glide.buildname'] || 'Unknown';
+  // Strategy 2: Batch IN query (if individual queries returned nothing)
+  if (Object.keys(results).length === 0) {
+    try {
+      const nameList = VERSION_PROPERTIES.join(',');
+      const response = await client.queryTable(
+        'sys_properties',
+        `nameIN${nameList}`,
+        ['name', 'value'],
+        10
+      );
+      if (response.result) {
+        for (const row of response.result) {
+          const name = row.name as string;
+          const value = row.value as string;
+          if (name && value) results[name] = value;
+        }
+      }
+    } catch {
+      // Batch query not supported or table not accessible
+    }
+  }
+
+  // Strategy 3: LIKE query fallback (broadest search)
+  if (Object.keys(results).length === 0) {
+    try {
+      const response = await client.queryTable(
+        'sys_properties',
+        'nameLIKEglide.build',
+        ['name', 'value'],
+        10
+      );
+      if (response.result) {
+        for (const row of response.result) {
+          const name = row.name as string;
+          const value = row.value as string;
+          if (name && value) results[name] = value;
+        }
+      }
+    } catch {
+      // sys_properties table entirely inaccessible
+    }
+  }
+
+  // Extract version from collected properties
+  const buildTag = results['glide.buildtag'] || results['glide.war'] || '';
+  const version = parseVersionFromBuildTag(buildTag)
+    || results['glide.buildname']
+    || 'Unknown';
 
   return {
     version,
@@ -1978,27 +2153,32 @@ async function getInstanceInfo(client: ServiceNowClient): Promise<{
 async function checkFeature(
   client: ServiceNowClient,
   featureName: string,
-  config: { plugins: string[]; tables: string[]; description: string }
+  config: FeaturePluginConfig
 ): Promise<FeatureStatus> {
-  // First try to find the plugin
-  for (const pluginId of config.plugins) {
-    try {
-      const response = await client.queryTable(
-        'v_plugin',
-        `id=${pluginId}^active=true`,
-        ['id', 'name'],
-        1
-      );
-      if (response.result && response.result.length > 0) {
-        return {
-          name: featureName,
-          enabled: true,
-          description: config.description,
-          details: `Plugin: ${response.result[0].name || pluginId}`,
-        };
+  // Try each plugin table (v_plugin, sys_plugins, sys_store_app)
+  for (const pluginTable of config.pluginTables) {
+    for (const pluginId of config.plugins) {
+      try {
+        const query = config.pluginQueryType === 'like'
+          ? `idLIKE${pluginId}^active=true`
+          : `id=${pluginId}^active=true`;
+        const response = await client.queryTable(
+          pluginTable,
+          query,
+          ['id', 'name'],
+          1
+        );
+        if (response.result && response.result.length > 0) {
+          return {
+            name: featureName,
+            enabled: true,
+            description: config.description,
+            details: `Plugin: ${response.result[0].name || pluginId} (via ${pluginTable})`,
+          };
+        }
+      } catch {
+        // Plugin table not accessible, try next
       }
-    } catch {
-      // Plugin table might not be accessible, try tables
     }
   }
 
@@ -2006,7 +2186,6 @@ async function checkFeature(
   for (const tableName of config.tables) {
     try {
       const response = await client.queryTable(tableName, '', ['sys_id'], 1);
-      // If we can query the table, the feature is likely enabled
       if (response.result !== undefined) {
         return {
           name: featureName,
@@ -2029,26 +2208,32 @@ async function checkFeature(
 }
 
 async function getInstalledPlugins(client: ServiceNowClient): Promise<PluginInfo[]> {
-  try {
-    const response = await client.queryTable(
-      'v_plugin',
-      'ORDERBYname',
-      ['id', 'name', 'version', 'active'],
-      200
-    );
+  const pluginTables = ['v_plugin', 'sys_plugins', 'sys_store_app'];
 
-    if (!response.result) return [];
+  for (const table of pluginTables) {
+    try {
+      const response = await client.queryTable(
+        table,
+        'ORDERBYname',
+        ['id', 'name', 'version', 'active'],
+        200
+      );
 
-    return response.result.map(p => ({
-      id: p.id as string,
-      name: p.name as string || p.id as string,
-      version: p.version as string || '',
-      active: p.active === 'true' || p.active === true,
-    }));
-  } catch {
-    // Plugin table might not be accessible
-    return [];
+      if (response.result && response.result.length > 0) {
+        return response.result.map(p => ({
+          id: (p.id as string) || '',
+          name: (p.name as string) || (p.id as string) || '',
+          version: (p.version as string) || '',
+          active: p.active === 'true' || p.active === true,
+        }));
+      }
+    } catch {
+      // This table not accessible, try next
+      continue;
+    }
   }
+
+  return [];
 }
 
 async function getHealthMetrics(client: ServiceNowClient): Promise<HealthMetrics> {

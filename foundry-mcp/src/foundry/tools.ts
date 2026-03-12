@@ -5,8 +5,8 @@
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { CONFIG } from "../shared/config.js";
 import { errorToResult } from "../shared/errors.js";
-import { initializeProject, addResource, syncResources } from "./project.js";
-import { listResources, getResourceInfo, searchResources } from "./resources.js";
+import { initializeProject, addResource, syncResources, syncGlobalSkills } from "./project.js";
+import { listResources, getResourceInfo, searchResources, checkContext } from "./resources.js";
 import { createNewResource, validateResource, promoteResource } from "./contribute.js";
 import { handleExternal } from "./external.js";
 import { handleVersion } from "./version.js";
@@ -26,25 +26,25 @@ function validateRequired(value: unknown, name: string): string | null {
 const FOUNDRY_INIT_TOOL: Tool = {
   name: "foundry_init",
   description:
-    "Bootstrap a new Now Assist POC project with pre-loaded context, skills, and template from the Foundry golden repository.",
+    "Bootstrap the current directory (or a specified path) as a Now Assist POC project with pre-loaded context, skills, and template from the Foundry golden repository. Writes .claude/, CLAUDE.md, and .gitignore directly into the target directory — no subdirectory is created.",
   inputSchema: {
     type: "object" as const,
     properties: {
       projectName: {
         type: "string",
         description:
-          "Name of the project directory to create (e.g., 'my-poc', 'customer-demo')",
+          "Optional display name for the project used in CLAUDE.md (defaults to the directory name)",
       },
       path: {
         type: "string",
         description:
-          "Parent directory where the project will be created. Defaults to current working directory.",
+          "Directory to initialize. Defaults to current working directory.",
       },
       template: {
         type: "string",
-        enum: ["sparc-starter", "minimal", "standard"],
+        enum: ["foundry-poc", "foundry-minimal"],
         description:
-          "Project template to use (default: 'sparc-starter'). Use foundry_templates to see available templates.",
+          "Project template to use (default: 'foundry-poc'). Use foundry_templates to see available templates.",
       },
       goldenPath: {
         type: "string",
@@ -52,7 +52,6 @@ const FOUNDRY_INIT_TOOL: Tool = {
           "Optional: Local path to foundry-golden repo. If provided, uses this instead of cloning from GitHub.",
       },
     },
-    required: ["projectName"],
   },
 };
 
@@ -63,8 +62,12 @@ const FOUNDRY_LIST_TOOL: Tool = {
 Shows available:
 - Context files: Domain knowledge (Now Assist, GenAI, Agentic patterns)
 - Skills: Reusable Claude Code skills with instructions and examples
+  - scope: global = installs to ~/.claude/skills/ (developer machine)
+  - scope: project = installs to project .claude/skills/
+  - ★ = recommended skill, [installed] = already installed globally
 - Templates: Project templates (SPARC methodology, etc.)
 
+Use filter="global" to show only global-scoped skills.
 Use this to discover what resources are available before using foundry_add.`,
   inputSchema: {
     type: "object" as const,
@@ -78,22 +81,30 @@ Use this to discover what resources are available before using foundry_add.`,
         type: "boolean",
         description: "Include descriptions from resource files (default: false)",
       },
+      filter: {
+        type: "string",
+        description: "Filter skills by scope: 'global' or 'project'",
+      },
     },
   },
 };
 
 const FOUNDRY_ADD_TOOL: Tool = {
   name: "foundry_add",
-  description: `Add a Foundry resource to an existing project.
+  description: `Add a Foundry resource to an existing project or install a global skill.
 
-Adds context files, skills, or agent examples from the golden repository to your project's .claude/ directory.
+Adds context files, skills, or agent examples from the golden repository.
 
 Examples:
 - Add a context file: type="context", name="now-assist-platform"
-- Add a skill: type="skill", name="api-integration"
+- Add a project skill: type="skill", name="api-integration"
+- Add a global skill: type="skill", name="apple-keychain-auth" global=true
 - Add an agent example: type="agent_example", name="incident-summarizer"
 
-Use foundry_list to see available resources first.`,
+Global skills (scope: global) install to ~/.claude/skills/ and are available across all projects.
+Project skills install to the project's .claude/skills/ directory.
+
+Use foundry_list to see available resources and their scope first.`,
   inputSchema: {
     type: "object" as const,
     properties: {
@@ -104,7 +115,7 @@ Use foundry_list to see available resources first.`,
       },
       name: {
         type: "string",
-        description: "Name of the resource to add (e.g., 'now-assist-platform', 'api-integration')",
+        description: "Name of the resource to add (e.g., 'now-assist-platform', 'apple-keychain-auth')",
       },
       projectPath: {
         type: "string",
@@ -113,6 +124,10 @@ Use foundry_list to see available resources first.`,
       force: {
         type: "boolean",
         description: "Overwrite if resource already exists (default: false)",
+      },
+      global: {
+        type: "boolean",
+        description: "Install skill to ~/.claude/skills/ for use across all projects (default: determined by skill scope)",
       },
     },
     required: ["type", "name"],
@@ -123,11 +138,13 @@ const FOUNDRY_SYNC_TOOL: Tool = {
   name: "foundry_sync",
   description: `Sync project resources with the latest from the golden repository.
 
-Compares your project's .claude/ resources with the golden repo and updates outdated files.
+For project resources: Compares your project's .claude/ resources with the golden repo and updates outdated files.
+For global skills (global=true): git pull on each globally installed skill in ~/.claude/skills/.
 
 Options:
 - dryRun: Preview changes without applying them (default: true for safety)
 - type: Sync only specific resource type (context, skills, or all)
+- global: Sync globally installed skills instead of project resources
 
 Shows:
 - Updated: Files that have changed in golden repo
@@ -148,6 +165,10 @@ Shows:
         type: "string",
         enum: ["context", "skills", "all"],
         description: "Type of resources to sync (default: 'all')",
+      },
+      global: {
+        type: "boolean",
+        description: "Sync globally installed skills in ~/.claude/skills/ (default: false)",
       },
     },
   },
@@ -390,9 +411,8 @@ const FOUNDRY_TEMPLATES_TOOL: Tool = {
   description: `List and preview available project templates.
 
 Templates:
-- sparc-starter: Full SPARC methodology with all context and skills (default)
-- minimal: Bare-bones CLAUDE.md only, no preloaded resources
-- standard: Basic setup with core context, no skills
+- foundry-poc: Full POC kit with context, skills, and SPARC methodology (default)
+- foundry-minimal: Bare-bones CLAUDE.md only, no preloaded resources
 
 Use with foundry_init template="name" to create projects with different templates.`,
   inputSchema: {
@@ -415,6 +435,30 @@ Use with foundry_init template="name" to create projects with different template
   },
 };
 
+const FOUNDRY_CHECK_CONTEXT_TOOL: Tool = {
+  name: "foundry_check_context",
+  description: `Check which Foundry skills are relevant to a task based on keyword triggers.
+
+Reads skill metadata from the golden repository and matches triggers against your task description.
+Returns relevant skills that are installed and those that aren't yet installed.
+
+Examples:
+- foundry_check_context task_description="I need to deploy to ServiceNow"
+  → suggests now-sdk-deployment
+- foundry_check_context task_description="I need to authenticate with the API"
+  → suggests apple-keychain-auth`,
+  inputSchema: {
+    type: "object" as const,
+    properties: {
+      task_description: {
+        type: "string",
+        description: "Description of the task you are about to perform",
+      },
+    },
+    required: ["task_description"],
+  },
+};
+
 // ── Exports ──────────────────────────────────────────────────────
 
 export const FOUNDRY_TOOLS: Tool[] = [
@@ -430,6 +474,7 @@ export const FOUNDRY_TOOLS: Tool[] = [
   FOUNDRY_EXTERNAL_TOOL,
   FOUNDRY_VERSION_TOOL,
   FOUNDRY_TEMPLATES_TOOL,
+  FOUNDRY_CHECK_CONTEXT_TOOL,
 ];
 
 export function isFoundryTool(name: string): boolean {
@@ -455,11 +500,9 @@ async function dispatchFoundryTool(
 ): Promise<{ success: boolean; message: string }> {
   switch (name) {
     case "foundry_init": {
-      const error = validateRequired(args.projectName, "projectName");
-      if (error) return { success: false, message: error };
       return initializeProject(
-        args.projectName as string,
         (args.path as string) || process.cwd(),
+        args.projectName as string | undefined,
         args.goldenPath as string | undefined,
         (args.template as string) || CONFIG.defaultTemplate
       );
@@ -468,7 +511,9 @@ async function dispatchFoundryTool(
     case "foundry_list":
       return listResources(
         (args.type as string) || "all",
-        args.verbose === true
+        args.verbose === true,
+        undefined,
+        args.filter as string | undefined
       );
 
     case "foundry_add": {
@@ -480,11 +525,16 @@ async function dispatchFoundryTool(
         args.type as string,
         args.name as string,
         (args.projectPath as string) || process.cwd(),
-        args.force === true
+        args.force === true,
+        undefined,
+        args.global as boolean | undefined
       );
     }
 
     case "foundry_sync":
+      if (args.global === true) {
+        return syncGlobalSkills(args.dryRun !== false);
+      }
       return syncResources(
         (args.projectPath as string) || process.cwd(),
         args.dryRun !== false,
@@ -573,6 +623,12 @@ async function dispatchFoundryTool(
         args.template as string | undefined,
         args.compare as string | undefined
       );
+
+    case "foundry_check_context": {
+      const error = validateRequired(args.task_description, "task_description");
+      if (error) return { success: false, message: error };
+      return checkContext(args.task_description as string);
+    }
 
     default:
       return { success: false, message: `Unknown Foundry tool: ${name}` };

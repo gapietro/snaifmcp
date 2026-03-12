@@ -10,6 +10,11 @@ export interface ResourceInfo {
   hasExamples?: boolean;
   complexity?: string;
   agentType?: string;
+  // Skill-specific metadata from SKILL.md frontmatter
+  scope?: "global" | "project";
+  recommended?: boolean;
+  tags?: string[];
+  installedGlobally?: boolean;
 }
 
 export interface SyncStatus {
