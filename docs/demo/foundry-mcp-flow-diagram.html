@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How Foundry MCP Works — End-to-End Flow</title>
+  <style>
+    :root {
+      --bg:       #0c0e14;
+      --panel:    #141720;
+      --border:   #252a3d;
+
+      --user:     #f472b6;
+      --user-dim: #2d1024;
+      --cc:       #6c8ef7;
+      --cc-dim:   #1a2040;
+      --llm:      #a78bfa;
+      --llm-dim:  #1e1440;
+      --mcp:      #34d399;
+      --mcp-dim:  #0d2d1e;
+      --repo:     #fbbf24;
+      --repo-dim: #2d2008;
+      --fs:       #fb923c;
+      --fs-dim:   #2d1408;
+
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --radius:   10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 40px 32px 60px;
+    }
+
+    /* ── Title ── */
+    .title-block {
+      text-align: center;
+      margin-bottom: 44px;
+    }
+
+    .title-block h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+
+    .title-block h1 span { color: var(--mcp); }
+
+    .title-block p {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 6px;
+    }
+
+    .scenario-pill {
+      display: inline-block;
+      margin-top: 12px;
+      background: var(--cc-dim);
+      border: 1px solid #2a3860;
+      border-radius: 24px;
+      padding: 6px 18px;
+      font-size: 13px;
+      color: var(--cc);
+    }
+
+    .scenario-pill em { font-style: normal; color: #fff; }
+
+    /* ── Legend ── */
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 36px;
+    }
+
+    .leg {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .leg-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── Swimlane header ── */
+    .lanes {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .lane-header {
+      padding: 14px 10px 12px;
+      text-align: center;
+      border-radius: var(--radius) var(--radius) 0 0;
+      margin: 0 4px;
+    }
+
+    .lane-icon {
+      font-size: 26px;
+      display: block;
+      margin-bottom: 6px;
+      line-height: 1;
+    }
+
+    .lane-name {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .lane-sub {
+      font-size: 10px;
+      margin-top: 3px;
+      opacity: 0.7;
+    }
+
+    .lh-user  { background: var(--user-dim);  color: var(--user);  border: 1px solid #4a1a38; }
+    .lh-cc    { background: var(--cc-dim);    color: var(--cc);    border: 1px solid #2a3860; }
+    .lh-llm   { background: var(--llm-dim);   color: var(--llm);   border: 1px solid #2e1f60; }
+    .lh-mcp   { background: var(--mcp-dim);   color: var(--mcp);   border: 1px solid #1a4a30; }
+    .lh-store { background: var(--repo-dim);  color: var(--repo);  border: 1px solid #4a3408; }
+
+    /* ── Flow rows ── */
+    .flow-body {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0;
+      max-width: 1100px;
+      margin: 0 auto;
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 var(--radius) var(--radius);
+      overflow: hidden;
+    }
+
+    /* vertical lane lines */
+    .flow-body > * {
+      border-right: 1px dashed var(--border);
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 6px;
+      position: relative;
+    }
+
+    .flow-body > *:last-child { border-right: none; }
+
+    /* row backgrounds alternate */
+    .row-bg-a { background: var(--panel); }
+    .row-bg-b { background: #111420; }
+
+    /* A cell group spans the full row visually via border-bottom */
+    .flow-row-divider {
+      grid-column: 1 / -1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Step bubbles ── */
+    .step-bubble {
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+      line-height: 1.4;
+      text-align: center;
+      width: 100%;
+      max-width: 170px;
+      position: relative;
+    }
+
+    .step-num {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      display: block;
+      margin-bottom: 3px;
+      opacity: 0.7;
+    }
+
+    .step-text { font-weight: 500; }
+    .step-code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 10.5px;
+      display: block;
+      margin-top: 4px;
+      opacity: 0.85;
+    }
+
+    /* colors per lane */
+    .sb-user  { background: var(--user-dim);  border: 1px solid #5a2048; color: var(--user); }
+    .sb-cc    { background: var(--cc-dim);    border: 1px solid #2a3870; color: var(--cc); }
+    .sb-llm   { background: var(--llm-dim);   border: 1px solid #362570; color: var(--llm); }
+    .sb-mcp   { background: var(--mcp-dim);   border: 1px solid #1a5a38; color: var(--mcp); }
+    .sb-store { background: var(--repo-dim);  border: 1px solid #5a4010; color: var(--repo); }
+    .sb-fs    { background: var(--fs-dim);    border: 1px solid #5a2808; color: var(--fs); }
+
+    /* ── Arrows ── */
+    .arrow-row {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background: #0e1018;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 4px 0;
+    }
+
+    .arrow-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--muted);
+      gap: 5px;
+      padding: 4px 6px;
+      min-height: 32px;
+    }
+
+    .arrow-cell.highlight {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .arr { font-size: 14px; }
+    .arr-right  { color: var(--cc); }
+    .arr-left   { color: var(--mcp); }
+
+    /* multi-column arrow spans */
+    .span-2 { grid-column: span 2; }
+    .span-3 { grid-column: span 3; }
+    .span-4 { grid-column: span 4; }
+
+    .arrow-through {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 11px;
+      padding: 4px 8px;
+    }
+
+    .arrow-line {
+      height: 2px;
+      background: currentColor;
+      flex: 1;
+      position: relative;
+    }
+
+    .arrow-line::after {
+      content: '▶';
+      font-size: 10px;
+      position: absolute;
+      right: -6px;
+      top: -7px;
+    }
+
+    .arrow-line.left::after { display: none; }
+    .arrow-line.left::before {
+      content: '◀';
+      font-size: 10px;
+      position: absolute;
+      left: -6px;
+      top: -7px;
+    }
+
+    .protocol-tag {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 10px;
+      white-space: nowrap;
+    }
+
+    .pt-api   { background: #1a2550; color: var(--cc); border: 1px solid var(--cc-dim); }
+    .pt-stdio { background: #0d2820; color: var(--mcp); border: 1px solid var(--mcp-dim); }
+    .pt-rpc   { background: #1e1440; color: var(--llm); border: 1px solid var(--llm-dim); }
+    .pt-fs    { background: var(--fs-dim); color: var(--fs); border: 1px solid #5a2808; }
+
+    /* empty cell */
+    .empty { background: transparent; }
+
+    /* ── Phase labels ── */
+    .phase-label {
+      grid-column: 1 / -1;
+      padding: 10px 20px;
+      background: #0a0c12;
+      border-top: 2px solid var(--border);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .phase-label span {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 20px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .ph-user  span { background: var(--user-dim); color: var(--user); }
+    .ph-think span { background: var(--llm-dim);  color: var(--llm); }
+    .ph-exec  span { background: var(--mcp-dim);  color: var(--mcp); }
+    .ph-resp  span { background: var(--cc-dim);   color: var(--cc); }
+
+    /* ── Annotations ── */
+    .annotation {
+      grid-column: 1 / -1;
+      padding: 8px 20px;
+      font-size: 12px;
+      color: var(--muted);
+      background: #0e1018;
+      border-top: 1px dashed var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .annotation strong { color: var(--text); }
+
+    /* ── Section breakers ── */
+    .section-break {
+      grid-column: 1 / -1;
+      height: 8px;
+      background: var(--bg);
+    }
+
+    /* ── Key insight callouts ── */
+    .insights {
+      max-width: 1100px;
+      margin: 32px auto 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .insight-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+    }
+
+    .insight-card h3 {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .insight-card p {
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .insight-card p strong { color: var(--text); }
+
+    .ic-why  h3 { color: var(--llm); }
+    .ic-what h3 { color: var(--mcp); }
+    .ic-how  h3 { color: var(--cc); }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Title -->
+<div class="title-block">
+  <h1>How <span>Foundry MCP</span> Works</h1>
+  <p>End-to-end communication flow between every layer of the system</p>
+  <div class="scenario-pill">
+    Scenario: User asks → <em>"Initialize a new Foundry POC project called my-poc"</em>
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="leg"><div class="leg-dot" style="background:var(--user)"></div> Human User</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--cc)"></div> Claude Code (Host App)</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--llm)"></div> LLM Engine (Claude API)</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--mcp)"></div> MCP Server (foundry-mcp)</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--repo)"></div> Golden Repo + Filesystem</div>
+</div>
+
+<!-- ═══════════════════ SWIMLANE HEADERS ═══════════════════ -->
+<div class="lanes">
+  <div class="lane-header lh-user">
+    <span class="lane-icon">🧑‍💻</span>
+    <div class="lane-name">User</div>
+    <div class="lane-sub">Claude Code chat</div>
+  </div>
+  <div class="lane-header lh-cc">
+    <span class="lane-icon">⚙️</span>
+    <div class="lane-name">Claude Code</div>
+    <div class="lane-sub">Host application</div>
+  </div>
+  <div class="lane-header lh-llm">
+    <span class="lane-icon">🧠</span>
+    <div class="lane-name">LLM Engine</div>
+    <div class="lane-sub">Claude API</div>
+  </div>
+  <div class="lane-header lh-mcp">
+    <span class="lane-icon">🔌</span>
+    <div class="lane-name">MCP Server</div>
+    <div class="lane-sub">foundry-mcp (Node.js)</div>
+  </div>
+  <div class="lane-header lh-store">
+    <span class="lane-icon">📦</span>
+    <div class="lane-name">Storage</div>
+    <div class="lane-sub">Golden Repo + Filesystem</div>
+  </div>
+</div>
+
+<!-- ═══════════════════ FLOW BODY ═══════════════════ -->
+<div class="flow-body">
+
+  <!-- ──────────── PHASE 1: USER INPUT ──────────── -->
+  <div class="phase-label ph-user">
+    <span>1</span>
+    User Sends a Natural Language Request
+  </div>
+
+  <!-- Step 1 -->
+  <div class="row-bg-a" style="justify-content:flex-end">
+    <div class="step-bubble sb-user">
+      <span class="step-num">Step 1</span>
+      <span class="step-text">Types natural language prompt in chat</span>
+      <span class="step-code">"Initialize a new Foundry POC project called my-poc"</span>
+    </div>
+  </div>
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a empty"></div>
+
+  <!-- Arrow: User → Claude Code -->
+  <div class="arrow-row">
+    <div class="arrow-cell highlight" style="color:var(--user)">User types ↵</div>
+    <div class="arrow-cell span-4" style="justify-content:flex-start; color:var(--muted); font-size:11px; gap:4px">
+      <span style="color:var(--user)">────────────────▶</span>
+      <span>message sent to Claude Code host process</span>
+    </div>
+  </div>
+
+  <!-- ──────────── PHASE 2: LLM THINKS ──────────── -->
+  <div class="phase-label ph-think">
+    <span>2</span>
+    LLM Receives Context + Decides to Use a Tool
+  </div>
+
+  <!-- Step 2 -->
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b">
+    <div class="step-bubble sb-cc">
+      <span class="step-num">Step 2</span>
+      <span class="step-text">Packages conversation + available tool list</span>
+      <span class="step-code">tools: [foundry_init, foundry_list…]</span>
+    </div>
+  </div>
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b empty"></div>
+
+  <!-- Arrow: Claude Code → LLM -->
+  <div class="arrow-row">
+    <div class="arrow-cell empty"></div>
+    <div class="arrow-cell highlight" style="color:var(--cc)">Claude Code</div>
+    <div class="arrow-cell span-3" style="justify-content:flex-start; gap:8px">
+      <span style="color:var(--cc)">────────────────▶</span>
+      <span class="protocol-tag pt-api">Claude API</span>
+      <span style="color:var(--muted)">POST /messages with tool definitions</span>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a">
+    <div class="step-bubble sb-llm">
+      <span class="step-num">Step 3</span>
+      <span class="step-text">Reads tool catalog, understands intent</span>
+      <span class="step-code">→ foundry_init is the right tool</span>
+    </div>
+  </div>
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a empty"></div>
+
+  <!-- Step 4 -->
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b">
+    <div class="step-bubble sb-llm">
+      <span class="step-num">Step 4</span>
+      <span class="step-text">Generates structured tool call</span>
+      <span class="step-code">foundry_init(
+  projectName: "my-poc",
+  path: "~/projects/my-poc",
+  template: "foundry-poc"
+)</span>
+    </div>
+  </div>
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b empty"></div>
+
+  <!-- Arrow: LLM → Claude Code -->
+  <div class="arrow-row">
+    <div class="arrow-cell empty"></div>
+    <div class="arrow-cell span-2" style="justify-content:flex-end; gap:8px">
+      <span style="color:var(--muted)">tool_use block returned ◀</span>
+      <span class="protocol-tag pt-api">Claude API</span>
+    </div>
+    <div class="arrow-cell highlight" style="color:var(--cc)">Claude Code receives</div>
+    <div class="arrow-cell empty"></div>
+  </div>
+
+  <!-- ──────────── PHASE 3: MCP EXECUTION ──────────── -->
+  <div class="phase-label ph-exec">
+    <span>3</span>
+    Claude Code Routes Tool Call → MCP Server Executes
+  </div>
+
+  <!-- Step 5 -->
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a">
+    <div class="step-bubble sb-cc">
+      <span class="step-num">Step 5</span>
+      <span class="step-text">Looks up which MCP server owns foundry_init</span>
+      <span class="step-code">→ "foundry" server (stdio)</span>
+    </div>
+  </div>
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a empty"></div>
+
+  <!-- Arrow: Claude Code → MCP Server -->
+  <div class="arrow-row">
+    <div class="arrow-cell empty"></div>
+    <div class="arrow-cell highlight" style="color:var(--cc)">Claude Code</div>
+    <div class="arrow-cell empty"></div>
+    <div class="arrow-cell span-2" style="gap:8px">
+      <span style="color:var(--mcp)">────────────▶</span>
+      <span class="protocol-tag pt-stdio">stdio</span>
+      <span class="protocol-tag pt-rpc">JSON-RPC</span>
+      <span style="color:var(--muted); font-size:10px">tools/call</span>
+    </div>
+  </div>
+
+  <!-- Step 6 -->
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b">
+    <div class="step-bubble sb-mcp">
+      <span class="step-num">Step 6</span>
+      <span class="step-text">Receives tool call, validates parameters</span>
+      <span class="step-code">foundry_init handler called</span>
+    </div>
+  </div>
+  <div class="row-bg-b empty"></div>
+
+  <!-- Step 7 -->
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a">
+    <div class="step-bubble sb-mcp">
+      <span class="step-num">Step 7</span>
+      <span class="step-text">Checks golden repo cache</span>
+      <span class="step-code">~/.foundry/golden/
+age &lt; 24h? skip clone</span>
+    </div>
+  </div>
+  <div class="row-bg-a empty"></div>
+
+  <!-- Arrow: MCP → Storage -->
+  <div class="arrow-row">
+    <div class="arrow-cell empty"></div>
+    <div class="arrow-cell empty"></div>
+    <div class="arrow-cell empty"></div>
+    <div class="arrow-cell highlight" style="color:var(--mcp)">MCP Server</div>
+    <div class="arrow-cell" style="gap:6px; color:var(--repo)">
+      <span>────▶</span>
+      <span style="font-size:10px">read template files</span>
+    </div>
+  </div>
+
+  <!-- Step 8 -->
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b">
+    <div class="step-bubble sb-store">
+      <span class="step-num">Step 8</span>
+      <span class="step-text">Returns template + resources</span>
+      <span class="step-code">foundry-poc/CLAUDE.md
+context/*.md
+skills/*/</span>
+    </div>
+  </div>
+
+  <!-- Arrow: Storage → MCP (return) -->
+  <div class="arrow-row">
+    <div class="arrow-cell empty"></div>
+    <div class="arrow-cell empty"></div>
+    <div class="arrow-cell empty"></div>
+    <div class="arrow-cell" style="gap:6px; color:var(--repo)">
+      <span>◀────</span>
+      <span style="font-size:10px">template content</span>
+    </div>
+    <div class="arrow-cell highlight" style="color:var(--repo)">Golden Repo</div>
+  </div>
+
+  <!-- Step 9 -->
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a">
+    <div class="step-bubble sb-mcp">
+      <span class="step-num">Step 9</span>
+      <span class="step-text">Writes project to disk</span>
+      <span class="step-code">mkdir my-poc/
+write CLAUDE.md
+copy context/*.md
+copy skills/*</span>
+    </div>
+  </div>
+  <div class="row-bg-a empty"></div>
+
+  <!-- Arrow: MCP → Filesystem -->
+  <div class="arrow-row">
+    <div class="arrow-cell empty"></div>
+    <div class="arrow-cell empty"></div>
+    <div class="arrow-cell empty"></div>
+    <div class="arrow-cell highlight" style="color:var(--mcp)">MCP Server</div>
+    <div class="arrow-cell" style="gap:6px; color:var(--fs)">
+      <span>────▶</span>
+      <span class="protocol-tag pt-fs">fs.write</span>
+      <span style="font-size:10px">creates 25+ files</span>
+    </div>
+  </div>
+
+  <!-- Step 10 -->
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b">
+    <div class="step-bubble sb-fs" style="color:var(--fs); background:var(--fs-dim); border-color:#5a2808;">
+      <span class="step-num">Step 10</span>
+      <span class="step-text">Project directory created</span>
+      <span class="step-code">~/projects/my-poc/
+  CLAUDE.md ✓
+  .gitignore ✓
+  00_Inbox/  ✓
+  .claude/context/ ✓
+  .claude/skills/  ✓</span>
+    </div>
+  </div>
+
+  <!-- ──────────── PHASE 4: RESPONSE ──────────── -->
+  <div class="phase-label ph-resp">
+    <span>4</span>
+    Result Travels Back — LLM Writes Human Response
+  </div>
+
+  <!-- Step 11 -->
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a">
+    <div class="step-bubble sb-mcp">
+      <span class="step-num">Step 11</span>
+      <span class="step-text">Returns success result + summary</span>
+      <span class="step-code">{ success: true,
+  filesCreated: 25,
+  template: "foundry-poc" }</span>
+    </div>
+  </div>
+  <div class="row-bg-a empty"></div>
+
+  <!-- Arrow: MCP → Claude Code -->
+  <div class="arrow-row">
+    <div class="arrow-cell empty"></div>
+    <div class="arrow-cell span-2" style="gap:8px; justify-content:flex-end">
+      <span style="color:var(--muted); font-size:10px">JSON-RPC response ◀</span>
+      <span class="protocol-tag pt-stdio">stdio</span>
+    </div>
+    <div class="arrow-cell highlight" style="color:var(--cc)">Claude Code receives result</div>
+    <div class="arrow-cell empty"></div>
+  </div>
+
+  <!-- Step 12 -->
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b">
+    <div class="step-bubble sb-cc">
+      <span class="step-num">Step 12</span>
+      <span class="step-text">Adds tool result to conversation context</span>
+      <span class="step-code">role: "tool"
+tool_use_id: "…"
+content: "{ success… }"</span>
+    </div>
+  </div>
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b empty"></div>
+
+  <!-- Arrow: Claude Code → LLM (2nd call) -->
+  <div class="arrow-row">
+    <div class="arrow-cell empty"></div>
+    <div class="arrow-cell highlight" style="color:var(--cc)">Claude Code</div>
+    <div class="arrow-cell span-3" style="justify-content:flex-start; gap:8px">
+      <span style="color:var(--cc)">────────────────▶</span>
+      <span class="protocol-tag pt-api">Claude API</span>
+      <span style="color:var(--muted)">follow-up /messages with tool result</span>
+    </div>
+  </div>
+
+  <!-- Step 13 -->
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a">
+    <div class="step-bubble sb-llm">
+      <span class="step-num">Step 13</span>
+      <span class="step-text">Reads result, formulates friendly response</span>
+      <span class="step-code">→ "Project my-poc initialized!
+  Template: foundry-poc
+  25 files created…"</span>
+    </div>
+  </div>
+  <div class="row-bg-a empty"></div>
+  <div class="row-bg-a empty"></div>
+
+  <!-- Arrow: LLM → Claude Code → User -->
+  <div class="arrow-row">
+    <div class="arrow-cell span-2" style="gap:6px; justify-content:flex-end; color:var(--user)">
+      <span>◀────────────────</span>
+      <span style="color:var(--muted)">text response rendered in chat</span>
+    </div>
+    <div class="arrow-cell highlight" style="color:var(--cc)">Claude Code</div>
+    <div class="arrow-cell span-2" style="justify-content:flex-start; gap:8px">
+      <span style="color:var(--cc)">◀────────────────</span>
+      <span class="protocol-tag pt-api">Claude API</span>
+    </div>
+  </div>
+
+  <!-- Step 14 -->
+  <div class="row-bg-b">
+    <div class="step-bubble sb-user">
+      <span class="step-num">Step 14</span>
+      <span class="step-text">Sees human-readable confirmation</span>
+      <span class="step-code">✅ Project my-poc initialized
+   — 3 context files
+   — 2 skills
+   — POC folders
+Ready to build!</span>
+    </div>
+  </div>
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b empty"></div>
+  <div class="row-bg-b empty"></div>
+
+</div>
+<!-- /flow-body -->
+
+<!-- ═══════════════ KEY INSIGHTS ═══════════════ -->
+<div class="insights">
+  <div class="insight-card ic-why">
+    <h3>🧠 Why MCP Exists</h3>
+    <p>
+      The LLM <strong>can't touch files directly</strong> — it only produces text.
+      MCP gives Claude a <strong>safe, structured API</strong> to invoke real-world
+      capabilities (filesystem, HTTP, databases) without executing arbitrary code.
+      Think of it as the LLM's hands.
+    </p>
+  </div>
+  <div class="insight-card ic-what">
+    <h3>🔌 What the MCP Protocol Does</h3>
+    <p>
+      MCP is a thin <strong>JSON-RPC contract over stdio</strong>. Claude Code
+      starts <code>node dist/index.js</code> as a child process at launch, then
+      sends <code>tools/call</code> messages and reads back results.
+      The server never opens a port — <strong>no network exposure</strong>.
+    </p>
+  </div>
+  <div class="insight-card ic-how">
+    <h3>⚙️ How Claude Picks the Right Tool</h3>
+    <p>
+      Claude Code sends the <strong>full tool catalog</strong> (name, description,
+      input schema) in every API request. The LLM reads descriptions and
+      <strong>infers which tool fits</strong> the user's intent — no hardcoded
+      routing, no keywords. Good descriptions = better tool selection.
+    </p>
+  </div>
+</div>
+
+<div class="footer">
+  Foundry MCP · 2026-03-10 · 38 tools · 5-layer architecture
+</div>
+
+</body>
+</html>

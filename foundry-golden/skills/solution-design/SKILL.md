@@ -1,3 +1,9 @@
+---
+name: solution-design
+scope: project
+recommended: false
+version: 1.0.0
+---
 # Skill: Solution Design
 
 > Structured use case intake and AI solution architecture design for ServiceNow Now Assist and AI Agent POCs.

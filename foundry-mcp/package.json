@@ -1,6 +1,6 @@
 {
   "name": "foundry-mcp",
-  "version": "2026.02.1901",
+  "version": "2026.03.0910",
   "description": "MCP server for bootstrapping Now Assist POC projects with Foundry",
   "type": "module",
   "main": "dist/index.js",
@@ -17,7 +17,11 @@
     "test:servicenow": "tsx test/validate-servicenow.ts",
     "test:exec": "tsx test/test-exec-utils.ts",
     "test:mcp": "tsx test/mcp-integration.ts",
-    "test:all": "npm run test && npm run test:servicenow && npm run test:exec && npm run test:mcp",
+    "test:redact": "tsx test/validate-redact.ts",
+    "test:script-api": "tsx test/validate-script-api.ts",
+    "test:live": "npm run build && tsx test/live-integration.ts",
+    "test:live:keybank": "npm run build && tsx test/live-integration.ts --profile keybank",
+    "test:all": "npm run test && npm run test:servicenow && npm run test:redact && npm run test:exec && npm run test:mcp && npm run test:script-api",
     "prepare": "npm run build"
   },
   "keywords": [

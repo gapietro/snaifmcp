@@ -1,3 +1,9 @@
+---
+name: servicenow-ai-evaluation
+scope: project
+recommended: false
+version: 1.0.0
+---
 # Skill: ServiceNow AI Evaluation
 
 > Step-by-step guide for evaluating AI agents and agentic workflows using ServiceNow's built-in evaluation framework.

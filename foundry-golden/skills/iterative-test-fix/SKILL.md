@@ -1,3 +1,9 @@
+---
+name: iterative-test-fix
+scope: project
+recommended: false
+version: 1.0.0
+---
 # Skill: Iterative Test-Fix
 
 > The QA loop: execute agent via MCP, check results, trace failures, identify root cause, categorize the fix type, apply or dispatch the fix, and re-test until everything passes.

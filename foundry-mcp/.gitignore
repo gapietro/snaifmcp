@@ -6,3 +6,14 @@ dist/
 # Test session outputs (may contain credentials)
 agent-test/
 **/session-raw-output.txt
+**/session-output.txt
+
+# Credential files
+.servicenow/
+credentials.json
+
+# Git worktrees
+.worktrees/
+
+# Session handoff docs (temporary, session-specific)
+**/SESSION-HANDOFF.md

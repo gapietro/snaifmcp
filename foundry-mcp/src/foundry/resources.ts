@@ -6,6 +6,8 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { directoryExists, fileExists, readFileContent, extractMarkdownSections, getWordCount } from "../shared/fs-utils.js";
 import { ensureGoldenRepo, listContextFiles, listSkills, listTemplates, listAgentExamples } from "./golden-repo.js";
+import { isInstalled } from "./skills-state.js";
+import { CONFIG } from "../shared/config.js";
 import type { ResourceInfo, SearchResult } from "./types.js";
 
 /**
@@ -14,7 +16,8 @@ import type { ResourceInfo, SearchResult } from "./types.js";
 export async function listResources(
   resourceType: string,
   verbose: boolean,
-  goldenPath?: string
+  goldenPath?: string,
+  scopeFilter?: string
 ): Promise<{ success: boolean; message: string }> {
   try {
     // Force refresh to get latest resources from GitHub
@@ -26,10 +29,22 @@ export async function listResources(
         ? await listContextFiles(goldenRepoPath, verbose)
         : [];
 
-    const skills: ResourceInfo[] =
+    const allSkills: ResourceInfo[] =
       type === "all" || type === "skills"
         ? await listSkills(goldenRepoPath, verbose)
         : [];
+
+    // Check global install status for all global-scoped skills
+    for (const skill of allSkills) {
+      if (skill.scope === "global") {
+        skill.installedGlobally = await isInstalled(skill.name);
+      }
+    }
+
+    // Apply scope filter if provided
+    const skills = scopeFilter
+      ? allSkills.filter(s => s.scope === scopeFilter)
+      : allSkills;
 
     const templates: ResourceInfo[] =
       type === "all" || type === "templates"
@@ -57,15 +72,27 @@ export async function listResources(
     }
 
     if (skills.length > 0) {
-      output += `\n🛠️  SKILLS (${skills.length})\n${"─".repeat(40)}\n`;
+      const globalCount = skills.filter(s => s.scope === "global").length;
+      const projectCount = skills.filter(s => s.scope !== "global").length;
+      const scopeSummary = globalCount > 0 && projectCount > 0
+        ? ` (${projectCount} project, ${globalCount} global)`
+        : globalCount > 0 ? " (global)" : " (project)";
+      output += `\n🛠️  SKILLS (${skills.length}${scopeSummary})\n${"─".repeat(40)}\n`;
       output += "Reusable instructions and patterns for common tasks.\n\n";
 
       for (const skill of skills) {
-        const examples = skill.hasExamples ? " [has examples]" : "";
-        output += `  • ${skill.name}${examples}\n`;
+        const recommended = skill.recommended ? " ★" : "";
+        const examples = skill.hasExamples ? " [examples]" : "";
+        const scopeBadge = skill.scope === "global" ? " [global]" : "";
+        const installedBadge = skill.installedGlobally ? " [installed]" : "";
+        output += `  • ${skill.name}${recommended}${scopeBadge}${installedBadge}${examples}\n`;
         if (verbose && skill.description) {
           output += `    ${skill.description}\n`;
         }
+      }
+      if (skills.some(s => s.scope === "global")) {
+        output += `\n  ★ = recommended  [global] = installs to ~/.claude/skills/  [installed] = already installed\n`;
+        output += `  Install: foundry_add type="skill" name="<name>" global=true\n`;
       }
     }
 
@@ -712,6 +739,102 @@ export async function searchResources(
     return {
       success: false,
       message: `Search failed: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+/**
+ * Check which skills are relevant to a task based on trigger keywords
+ */
+export async function checkContext(
+  taskDescription: string,
+  goldenPath?: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const goldenRepoPath = goldenPath || (await ensureGoldenRepo());
+    const skills = await listSkills(goldenRepoPath, true);
+    const descLower = taskDescription.toLowerCase();
+
+    interface SkillMatch {
+      name: string;
+      scope: string;
+      description?: string;
+      installedGlobally: boolean;
+      recommended: boolean;
+      matchedTriggers: string[];
+    }
+
+    const matched: SkillMatch[] = [];
+
+    for (const skill of skills) {
+      if (!skill.tags && !(skill as unknown as { triggers?: string[] }).triggers) continue;
+
+      // Parse triggers from frontmatter via parseSkillFrontmatter
+      const { parseSkillFrontmatter } = await import("./golden-repo.js");
+      const skillFile = path.join(goldenRepoPath, "skills", skill.name, "SKILL.md");
+      const frontmatter = await parseSkillFrontmatter(skillFile);
+
+      const triggers = frontmatter.triggers || [];
+      const matchedTriggers = triggers.filter(t => descLower.includes(t.toLowerCase()));
+
+      if (matchedTriggers.length > 0) {
+        const installed = skill.scope === "global" ? await isInstalled(skill.name) : false;
+        matched.push({
+          name: skill.name,
+          scope: skill.scope || "project",
+          description: frontmatter.description || skill.description,
+          installedGlobally: installed,
+          recommended: frontmatter.recommended ?? false,
+          matchedTriggers,
+        });
+      }
+    }
+
+    if (matched.length === 0) {
+      return {
+        success: true,
+        message: `No skills found matching task: "${taskDescription}"
+
+Try foundry_list type="skills" verbose=true to browse all available skills.`,
+      };
+    }
+
+    const installed = matched.filter(s => s.installedGlobally || s.scope === "project");
+    const notInstalled = matched.filter(s => !s.installedGlobally && s.scope === "global");
+
+    let output = `Context Check: "${taskDescription}"\n${"═".repeat(60)}\n`;
+    output += `Found ${matched.length} relevant skill(s)\n\n`;
+
+    if (installed.length > 0) {
+      output += `${"─".repeat(40)}\n`;
+      output += `AVAILABLE (${installed.length})\n`;
+      output += `${"─".repeat(40)}\n`;
+      for (const s of installed) {
+        const badge = s.scope === "global" ? " [installed globally]" : " [project-scoped]";
+        output += `  • ${s.name}${badge}\n`;
+        if (s.description) output += `    ${s.description}\n`;
+        output += `    Matched: ${s.matchedTriggers.join(", ")}\n\n`;
+      }
+    }
+
+    if (notInstalled.length > 0) {
+      output += `${"─".repeat(40)}\n`;
+      output += `SUGGESTED — NOT YET INSTALLED (${notInstalled.length})\n`;
+      output += `${"─".repeat(40)}\n`;
+      for (const s of notInstalled) {
+        const rec = s.recommended ? " ★ recommended" : "";
+        output += `  • ${s.name}${rec}\n`;
+        if (s.description) output += `    ${s.description}\n`;
+        output += `    Matched: ${s.matchedTriggers.join(", ")}\n`;
+        output += `    Install: foundry_add type="skill" name="${s.name}" global=true\n\n`;
+      }
+    }
+
+    return { success: true, message: output };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Context check failed: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

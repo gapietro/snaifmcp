@@ -1,3 +1,9 @@
+---
+name: tool-script-writer
+scope: project
+recommended: false
+version: 1.0.0
+---
 # Skill: Tool Script Writer
 
 > Take a tool description and produce a complete, safe ServiceNow AI Agent tool script with GlideRecordSecure, input/output schemas, error handling, and naming conventions.

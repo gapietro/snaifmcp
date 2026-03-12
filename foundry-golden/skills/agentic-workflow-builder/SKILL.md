@@ -1,3 +1,9 @@
+---
+name: agentic-workflow-builder
+scope: project
+recommended: false
+version: 1.0.0
+---
 # Skill: Agentic Workflow Builder
 
 > Step-by-step guide for creating ServiceNow Agentic Workflows with orchestrator and child agents.

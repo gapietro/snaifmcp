@@ -11,8 +11,8 @@ import type { TemplateInfo } from "./types.js";
 // Hardcoded fallback templates (used when template.json doesn't exist in golden repo)
 const FALLBACK_TEMPLATES: TemplateInfo[] = [
   {
-    name: "sparc-starter",
-    description: "Full SPARC methodology template with all resources",
+    name: "foundry-poc",
+    description: "Full POC kit — context, skills, and SPARC methodology",
     includes: { context: true, skills: true, claudeMd: true },
     features: [
       "SPARC methodology structure",
@@ -22,7 +22,7 @@ const FALLBACK_TEMPLATES: TemplateInfo[] = [
     ],
   },
   {
-    name: "minimal",
+    name: "foundry-minimal",
     description: "Bare-bones template with just CLAUDE.md",
     includes: { context: false, skills: false, claudeMd: true },
     features: [
@@ -30,17 +30,6 @@ const FALLBACK_TEMPLATES: TemplateInfo[] = [
       "No pre-loaded resources",
       "Fastest to set up",
       "Add resources as needed",
-    ],
-  },
-  {
-    name: "standard",
-    description: "Standard template with core context, no skills",
-    includes: { context: true, skills: false, claudeMd: true },
-    features: [
-      "Core context files only",
-      "No skills pre-loaded",
-      "Balanced starting point",
-      "Add skills as needed",
     ],
   },
 ];

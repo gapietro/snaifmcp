@@ -53,7 +53,7 @@ export declare class ServiceNowClient {
     /**
      * Query a table
      */
-    queryTable(table: string, query?: string, fields?: string[], limit?: number): Promise<TableAPIResponse>;
+    queryTable(table: string, query?: string, fields?: string[], limit?: number, displayValues?: boolean): Promise<TableAPIResponse>;
     /**
      * Create a record in a table
      */

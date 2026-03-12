@@ -243,7 +243,7 @@ async function runFoundryInit(): Promise<{ success: boolean; error?: string }> {
     await copyDirectory(skillsSrc, skillsDest);
 
     // Copy and process CLAUDE.md template
-    const templateSrc = path.join(GOLDEN_REPO_PATH, "templates", "sparc-starter", "CLAUDE.md");
+    const templateSrc = path.join(GOLDEN_REPO_PATH, "templates", "foundry-poc", "CLAUDE.md");
     const templateContent = await fs.readFile(templateSrc, "utf-8");
     const processedContent = templateContent.replace(/\{\{PROJECT_NAME\}\}/g, TEST_PROJECT_NAME);
     await fs.writeFile(path.join(TEST_PROJECT_PATH, "CLAUDE.md"), processedContent);
@@ -618,7 +618,7 @@ async function testFoundryInfo(): Promise<void> {
   }
 
   // Test 3: Template info
-  const templatePath = path.join(GOLDEN_REPO_PATH, "templates", "sparc-starter", "CLAUDE.md");
+  const templatePath = path.join(GOLDEN_REPO_PATH, "templates", "foundry-poc", "CLAUDE.md");
   const templateExists = await fileExists(templatePath);
 
   if (templateExists) {
@@ -1302,48 +1302,40 @@ async function testFoundryExternalRegistry(): Promise<void> {
 
 async function testFoundryTemplates(): Promise<void> {
   // Test 1: Template definitions
-  const templates = ["sparc-starter", "minimal", "standard"];
-  const allDefined = templates.length === 3;
+  const templates = ["foundry-poc", "foundry-minimal"];
+  const allDefined = templates.length === 2;
 
   addResult(
     "Templates: All templates defined",
     allDefined,
-    `3 templates available: ${templates.join(", ")}`
+    `2 templates available: ${templates.join(", ")}`
   );
 
   // Test 2: Template settings
   const templateSettings: Record<string, { context: boolean; skills: boolean }> = {
-    "sparc-starter": { context: true, skills: true },
-    "minimal": { context: false, skills: false },
-    "standard": { context: true, skills: false },
+    "foundry-poc": { context: true, skills: true },
+    "foundry-minimal": { context: false, skills: false },
   };
 
-  const sparcCorrect = templateSettings["sparc-starter"].context && templateSettings["sparc-starter"].skills;
-  const minimalCorrect = !templateSettings["minimal"].context && !templateSettings["minimal"].skills;
-  const standardCorrect = templateSettings["standard"].context && !templateSettings["standard"].skills;
+  const pocCorrect = templateSettings["foundry-poc"].context && templateSettings["foundry-poc"].skills;
+  const minimalCorrect = !templateSettings["foundry-minimal"].context && !templateSettings["foundry-minimal"].skills;
 
   addResult(
-    "Templates: sparc-starter includes all",
-    sparcCorrect,
-    "sparc-starter has context and skills"
+    "Templates: foundry-poc includes all",
+    pocCorrect,
+    "foundry-poc has context and skills"
   );
 
   addResult(
-    "Templates: minimal is bare",
+    "Templates: foundry-minimal is bare",
     minimalCorrect,
-    "minimal has no pre-loaded resources"
-  );
-
-  addResult(
-    "Templates: standard has context only",
-    standardCorrect,
-    "standard has context but no skills"
+    "foundry-minimal has no pre-loaded resources"
   );
 
   // Test 3: Template validation
-  const validTemplates = ["sparc-starter", "minimal", "standard"];
+  const validTemplates = ["foundry-poc", "foundry-minimal"];
   const invalidTemplate = "nonexistent";
-  const validationWorks = validTemplates.includes("sparc-starter") && !validTemplates.includes(invalidTemplate);
+  const validationWorks = validTemplates.includes("foundry-poc") && !validTemplates.includes(invalidTemplate);
 
   addResult(
     "Templates: Validation works",

@@ -226,13 +226,15 @@ export class ServiceNowClient {
     /**
      * Query a table
      */
-    async queryTable(table, query, fields, limit = 100) {
+    async queryTable(table, query, fields, limit = 100, displayValues = false) {
         const params = new URLSearchParams();
         if (query)
             params.set('sysparm_query', query);
         if (fields?.length)
             params.set('sysparm_fields', fields.join(','));
         params.set('sysparm_limit', String(limit));
+        if (displayValues)
+            params.set('sysparm_display_value', 'all');
         const endpoint = `/api/now/table/${table}?${params.toString()}`;
         return this.requestWithRetry(endpoint);
     }

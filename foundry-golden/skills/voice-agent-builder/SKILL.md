@@ -1,3 +1,9 @@
+---
+name: voice-agent-builder
+scope: project
+recommended: false
+version: 1.0.0
+---
 # Skill: Voice Agent Builder
 
 > Step-by-step guide for creating ServiceNow AI Voice Agents with telephony integration.

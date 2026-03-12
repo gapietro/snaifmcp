@@ -283,6 +283,36 @@ Tracks plan-level executions by conversation ID. This is the top-level execution
 | `Testing` | Triggered during testing/QA |
 | `Trigger` | Triggered by a `sn_aia_trigger_configuration` |
 
+**Relationships:**
+- **Parent of** `sn_aia_execution_task` -- Each plan contains one or more tasks (one per agent invocation).
+- **Parent of** `sn_aia_tools_execution` -- Tool call records are linked directly to the plan via the `execution_plan` field.
+- **Linked to** `sn_aia_message` -- Messages share the same `conversation_id` as the plan.
+- **Indirectly linked to** `sn_aia_agent` -- The agent is identified on each `sn_aia_execution_task`, not on the plan itself. To find which agent(s) ran, query `sn_aia_execution_task` by `execution_plan`.
+
+**API Query Patterns:**
+```bash
+# Get all execution plans for a specific agent (via execution tasks)
+curl -u "admin:password" \
+  "https://instance.service-now.com/api/now/table/sn_aia_execution_task?sysparm_query=agent=AGENT_SYS_ID&sysparm_fields=execution_plan,status,agent"
+
+# Get execution plan with its tasks and tool calls in one view
+# Step 1: Get the plan
+curl -u "admin:password" \
+  "https://instance.service-now.com/api/now/table/sn_aia_execution_plan?sysparm_query=conversation_id=CONV_ID"
+# Step 2: Get tasks for that plan
+curl -u "admin:password" \
+  "https://instance.service-now.com/api/now/table/sn_aia_execution_task?sysparm_query=execution_plan=PLAN_SYS_ID&sysparm_orderby=sys_created_on"
+# Step 3: Get tool executions for that plan
+curl -u "admin:password" \
+  "https://instance.service-now.com/api/now/table/sn_aia_tools_execution?sysparm_query=execution_plan=PLAN_SYS_ID&sysparm_orderby=step_number"
+```
+
+**Pre-Zurich Migration Notes:**
+- In Vancouver/Washington, execution tracking used `sn_aia_agent_execution` (singular, flat structure). Zurich replaced this with the plan/task hierarchy.
+- The old `sn_aia_agent_execution` table stored agent, status, and tool calls in a single record. Zurich separates these into `sn_aia_execution_plan` (conversation-level), `sn_aia_execution_task` (per-agent), and `sn_aia_tools_execution` (per-tool-call).
+- If migrating queries from pre-Zurich, replace `sn_aia_agent_execution` references with a join across `sn_aia_execution_plan` and `sn_aia_execution_task`.
+- The `conversation_id` field on `sn_aia_execution_plan` is the primary correlation key in Zurich, replacing the single execution record approach.
+
 ---
 
 ### 11. sn_aia_execution_task -- Execution Tasks
@@ -298,9 +328,26 @@ Individual task records within an execution plan, tracking which agent handled e
 
 **API Endpoint:** `GET /api/now/table/sn_aia_execution_task`
 
+**Relationships:**
+- **Child of** `sn_aia_execution_plan` -- Every task belongs to exactly one plan.
+- **References** `sn_aia_agent` -- The `agent` field identifies which agent executed this task. This is the authoritative link between execution records and agent definitions.
+- **Linked to** `sn_aia_gen_ai_m2m` -- Maps execution tasks to Gen AI log metadata for LLM call traceability.
+
+**API Query Patterns:**
+```bash
+# Get all tasks for a specific agent, ordered by most recent
+curl -u "admin:password" \
+  "https://instance.service-now.com/api/now/table/sn_aia_execution_task?sysparm_query=agent=AGENT_SYS_ID&sysparm_orderby=sys_created_on&sysparm_order=desc&sysparm_limit=50"
+
+# Get failed tasks across all agents in the last 24 hours
+curl -u "admin:password" \
+  "https://instance.service-now.com/api/now/table/sn_aia_execution_task?sysparm_query=status=failed^sys_created_on>=javascript:gs.daysAgoStart(1)&sysparm_fields=agent,status,execution_plan,sys_created_on"
+```
+
 **Notes:**
 - A single execution plan may contain multiple execution tasks (e.g., when an orchestrator delegates to multiple agents).
 - The `agent` field identifies which specific agent handled this portion of the workflow.
+- This table did not exist prior to Zurich. In Vancouver/Washington, agent identity was tracked on the single `sn_aia_agent_execution` record. The Zurich task model enables multi-agent orchestration where different agents handle different steps within a single plan.
 
 ---
 
@@ -481,6 +528,58 @@ Skill definitions managed by the GenAI Controller. The table name varies by Serv
 **API Endpoint:** `GET /api/now/table/sys_genai_skill` or `GET /api/now/table/sn_gai_skill`
 
 **IMPORTANT:** The table name varies between versions. Always probe both `sys_genai_skill` and `sn_gai_skill` to determine which exists on your instance. Use a try/catch pattern when querying programmatically.
+
+#### GenAI Skill Table Name Variants by Version
+
+The GenAI skill table name has changed across ServiceNow releases. This is one of the most common sources of cross-version compatibility issues.
+
+| Table Name | Platform Version(s) | Plugin | Notes |
+|------------|---------------------|--------|-------|
+| `sn_gai_skill` | Vancouver, Washington | `com.sn.generative.ai` (early) | Original GenAI Controller skill table. Uses `sn_gai` scope prefix. |
+| `sys_genai_skill` | Washington (late patches), Xanadu | `com.sn.generative.ai` (updated) | Moved to `sys_genai` prefix as part of platform-level integration. |
+| `sn_nowassist_skill_config` | Xanadu, Zurich | `sn_nowassist` | Now Assist skill configuration table. Higher-level abstraction that references capabilities via `sys_one_extend_capability`. Not a direct replacement for `sys_genai_skill` but often used alongside it. |
+
+**Version Detection Strategy:**
+
+When writing code that must work across versions, probe tables in this order:
+
+```javascript
+// Recommended probe order: newest first, fall back to oldest
+function getGenAISkillTable() {
+    var candidates = [
+        'sys_genai_skill',           // Washington late / Xanadu
+        'sn_gai_skill',              // Vancouver / Washington early
+        'sn_nowassist_skill_config'  // Xanadu / Zurich (different schema)
+    ];
+
+    for (var i = 0; i < candidates.length; i++) {
+        try {
+            var gr = new GlideRecord(candidates[i]);
+            gr.setLimit(1);
+            gr.query();
+            return { table: candidates[i], exists: true };
+        } catch (e) {
+            // Table doesn't exist on this instance, try next
+        }
+    }
+    return { table: null, exists: false };
+}
+```
+
+**Key Differences Between Tables:**
+
+| Aspect | `sn_gai_skill` / `sys_genai_skill` | `sn_nowassist_skill_config` |
+|--------|------------------------------------|-----------------------------|
+| Scope | GenAI Controller | Now Assist |
+| Schema | Flat skill definition | References `sys_one_extend_capability` |
+| Prompt storage | Direct `prompt` field or via `sys_genai_prompt_template` | Via `sys_generative_ai_config` |
+| Versioning | Via `sys_genai_skill_version` | Via capability definition chain |
+| Use case | Low-level GenAI skill management | Higher-level Now Assist skill orchestration |
+
+**Practical Guidance:**
+- On Zurich instances, prefer `sn_nowassist_skill_config` for skill management and `sys_genai_skill` for direct GenAI Controller operations.
+- On Vancouver/Washington instances, use `sn_gai_skill` or `sys_genai_skill` (probe to determine which exists).
+- Never hardcode a single table name. Always use the probe pattern above or the `getTableName()` helper from the [Table Name Variants by Version](#table-name-variants-by-version) section.
 
 ---
 

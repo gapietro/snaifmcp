@@ -1,3 +1,9 @@
+---
+name: servicenow-agent-builder
+scope: project
+recommended: false
+version: 1.0.0
+---
 # Claude Code Skill: ServiceNow Agentic Workflow Builder
 
 ## Skill Metadata

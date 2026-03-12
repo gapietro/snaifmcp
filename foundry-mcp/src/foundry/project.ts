@@ -5,8 +5,10 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import { directoryExists, fileExists, copyDirectory } from "../shared/fs-utils.js";
-import { ensureGoldenRepo } from "./golden-repo.js";
+import { ensureGoldenRepo, parseSkillFrontmatter } from "./golden-repo.js";
 import { getTemplateSettings, getValidTemplateNames } from "./templates.js";
+import { markInstalled } from "./skills-state.js";
+import { CONFIG } from "../shared/config.js";
 import type { SyncStatus } from "./types.js";
 
 /**
@@ -24,22 +26,16 @@ async function processTemplate(
  * Initialize a new Foundry project
  */
 export async function initializeProject(
-  projectName: string,
-  parentPath: string,
+  targetPath: string,
+  projectName?: string,
   goldenPath?: string,
   template: string = "sparc-starter"
 ): Promise<{ success: boolean; message: string; projectPath?: string }> {
-  // Validate project name
-  if (!/^[a-zA-Z0-9_-]+$/.test(projectName)) {
-    return {
-      success: false,
-      message:
-        "Invalid project name. Use only letters, numbers, hyphens, and underscores.",
-    };
-  }
+  // Derive display name from directory if not provided
+  const effectiveName = projectName || path.basename(targetPath);
 
   // Determine paths
-  const projectPath = path.join(parentPath, projectName);
+  const projectPath = targetPath;
   const goldenRepoPath = goldenPath || (await ensureGoldenRepo());
 
   // Validate template using data-driven config
@@ -53,14 +49,6 @@ export async function initializeProject(
 
   const templateSettings = await getTemplateSettings(goldenRepoPath, template) || { context: true, skills: true };
 
-  // Check if project already exists
-  if (await directoryExists(projectPath)) {
-    return {
-      success: false,
-      message: `Project directory already exists: ${projectPath}`,
-    };
-  }
-
   // Verify golden repo has expected structure
   const contextDir = path.join(goldenRepoPath, "context");
   const skillsDir = path.join(goldenRepoPath, "skills");
@@ -73,12 +61,9 @@ export async function initializeProject(
     };
   }
 
-  // Create project structure
+  // Initialize project structure
   try {
-    // Create main project directory
-    await fs.mkdir(projectPath, { recursive: true });
-
-    // Create .claude directory
+    // Create .claude directory (also creates projectPath if it doesn't exist)
     const claudeDir = path.join(projectPath, ".claude");
     await fs.mkdir(claudeDir, { recursive: true });
 
@@ -97,14 +82,14 @@ export async function initializeProject(
     // Copy and process CLAUDE.md template
     const templateFile = path.join(templateDir, "CLAUDE.md");
     if (await directoryExists(templateDir)) {
-      const processedTemplate = await processTemplate(templateFile, projectName);
+      const processedTemplate = await processTemplate(templateFile, effectiveName);
       await fs.writeFile(
         path.join(projectPath, "CLAUDE.md"),
         processedTemplate
       );
-    } else if (template === "minimal") {
+    } else if (template === "foundry-minimal") {
       // Create minimal CLAUDE.md
-      const minimalContent = `# ${projectName}
+      const minimalContent = `# ${effectiveName}
 
 ## Project Overview
 
@@ -123,29 +108,114 @@ Use \`foundry_add\` to add context files and skills as needed.
       await fs.writeFile(path.join(projectPath, "CLAUDE.md"), minimalContent);
     }
 
-    // Create a simple .gitignore
-    const gitignore = `# Dependencies
-node_modules/
+    // Create .gitignore
+    const gitignore = `# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
 
-# Build outputs
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log
+.npm
+.yarn-integrity
+
+# Build output
 dist/
 build/
+out/
+*.js.map
 
-# IDE
-.idea/
+# Environment files
+.env
+.env.*
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+*.key
+*.pem
+
+# Editor files
 .vscode/
+.idea/
 *.swp
 *.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# TypeScript
+*.tsbuildinfo
 
 # OS
-.DS_Store
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# Environment
-.env
-.env.local
+# Temporary
+/tmp/
+*.tmp
+
+# Logs
+logs/
+*.log
+
+# Meeting / Communication artifacts (local working files, not for repo)
+**/calls/
+**/emails/
+**/notes/
+
+# Office / Generated files (auto-converted, not source)
+# Original source files (pptx, docx, xlsx) are committed intentionally.
+# PDFs converted from those sources are ephemeral — do not commit.
+/tmp/*.pdf
 `;
     await fs.writeFile(path.join(projectPath, ".gitignore"), gitignore);
+
+    // Create standardized POC engagement folder structure
+    const pocDirs = [
+      "00_Inbox/calls/internal",
+      "00_Inbox/calls/external",
+      "00_Inbox/emails",
+      "00_Inbox/notes",
+      "01_Customers",
+      "10_PromptTemplates",
+      "20_Demo_Library",
+      "99_Assets/Project_Overview",
+      "99_Assets/Communications",
+      "99_Assets/POC_Documents",
+    ];
+    for (const dir of pocDirs) {
+      const dirPath = path.join(projectPath, dir);
+      await fs.mkdir(dirPath, { recursive: true });
+      await fs.writeFile(path.join(dirPath, ".gitkeep"), "");
+    }
+    // Customer placeholder README
+    await fs.writeFile(
+      path.join(projectPath, "01_Customers", "README.md"),
+      `# Customers\n\nCreate a subdirectory for each customer engagement, e.g.:\n\n\`\`\`\n01_Customers/\n└── Acme_Corp/\n    ├── requirements.md\n    └── notes.md\n\`\`\`\n`
+    );
 
     // Bootstrap external plugins (superpowers is default for all templates)
     const externalConfig = {
@@ -166,26 +236,51 @@ Thumbs.db
     }
     resourceList.push(`- Template: ${template}`);
     resourceList.push("- External: superpowers (agentic workflow framework)");
+    resourceList.push("- Folders: 00_Inbox, 01_Customers, 10_PromptTemplates, 20_Demo_Library, 99_Assets");
+
+    // Check for uninstalled recommended global skills to suggest
+    let globalSkillSuggestions = "";
+    try {
+      const { listSkills } = await import("./golden-repo.js");
+      const { isInstalled } = await import("./skills-state.js");
+      const allSkills = await listSkills(goldenRepoPath, false);
+      const recommendedGlobal = allSkills.filter(s => s.scope === "global" && s.recommended);
+      const uninstalled = [];
+      for (const s of recommendedGlobal) {
+        if (!(await isInstalled(s.name))) {
+          uninstalled.push(s);
+        }
+      }
+      if (uninstalled.length > 0) {
+        globalSkillSuggestions = `\nRecommended global skills not yet installed on your machine:\n`;
+        for (const s of uninstalled) {
+          globalSkillSuggestions += `  ★ ${s.name}${s.description ? ` — ${s.description}` : ""}\n`;
+          globalSkillSuggestions += `    foundry_add type="skill" name="${s.name}" global=true\n`;
+        }
+        globalSkillSuggestions += `Note: Global skills are not copied into projects — they install to ~/.claude/skills/\n`;
+      }
+    } catch {
+      // Non-critical — skip suggestions if golden repo unavailable
+    }
 
     return {
       success: true,
       projectPath,
-      message: `Project "${projectName}" created successfully at ${projectPath}
+      message: `Project "${effectiveName}" initialized at ${projectPath}
 
 Template: ${template}
 ${resourceList.join("\n")}
 
 Next steps:
-1. cd ${projectPath}
-2. Set up superpowers (recommended):
+1. Set up superpowers (recommended):
    gh repo clone obra/superpowers .superpowers
    # Then follow superpowers setup instructions
-3. Review CLAUDE.md and update project details
-4. Start building with Claude Code!
+2. Review CLAUDE.md and update project details
+3. Start building with Claude Code!
 ${!templateSettings.context || !templateSettings.skills ? `
 Use foundry_add to add additional resources:
   foundry_add type="context" name="now-assist-platform"
-  foundry_add type="skill" name="api-integration"` : ""}
+  foundry_add type="skill" name="api-integration"` : ""}${globalSkillSuggestions}
 The .claude/ directory contains pre-loaded resources that Claude Code will use automatically.
 Superpowers is pre-registered in .claude/foundry-external.json for design-first agentic workflows.`,
     };
@@ -288,13 +383,14 @@ This context is now available to Claude Code automatically.`,
 }
 
 /**
- * Add a skill to a project
+ * Add a skill — either project-local or global (~/.claude/skills/)
  */
 async function addSkill(
   goldenPath: string,
   projectPath: string,
   name: string,
-  force: boolean
+  force: boolean,
+  globalInstall?: boolean
 ): Promise<{ success: boolean; message: string }> {
   // Source path
   const sourcePath = path.join(goldenPath, "skills", name);
@@ -330,7 +426,62 @@ Use foundry_list type="skills" to see all available skills.`,
     };
   }
 
-  // Destination path
+  // Check frontmatter scope
+  const frontmatter = await parseSkillFrontmatter(skillFile);
+  const skillScope = frontmatter.scope || "project";
+
+  // Determine if this should be a global install
+  let isGlobal = globalInstall === true || skillScope === "global";
+
+  // Warn if user didn't specify global on a global-scoped skill
+  if (skillScope === "global" && globalInstall === false) {
+    return {
+      success: false,
+      message: `Skill "${name}" is scoped for global install (scope: global).
+
+This skill is designed for your developer machine, not a specific project.
+Run: foundry_add type="skill" name="${name}" global=true
+
+Or use force project-local install with global=false (not recommended for this skill).`,
+    };
+  }
+
+  if (isGlobal) {
+    // Global install: ~/.claude/skills/[name]/
+    const destDir = path.join(CONFIG.skillsInstallDir, name);
+
+    if ((await directoryExists(destDir)) && !force) {
+      return {
+        success: false,
+        message: `Skill "${name}" is already installed globally at ${destDir}.
+
+Use force=true to overwrite, or run foundry_sync global=true to update it.`,
+      };
+    }
+
+    if (force && (await directoryExists(destDir))) {
+      await fs.rm(destDir, { recursive: true, force: true });
+    }
+
+    await fs.mkdir(CONFIG.skillsInstallDir, { recursive: true });
+    await copyDirectory(sourcePath, destDir);
+
+    // Record in state
+    await markInstalled(name, frontmatter.version || "1.0.0", "global");
+
+    return {
+      success: true,
+      message: `Installed skill "${name}" globally.
+
+Location: ${destDir}
+Version: ${frontmatter.version || "1.0.0"}
+
+The skill is now available to Claude Code across all projects.
+You may need to restart Claude Code for it to be recognized.`,
+    };
+  }
+
+  // Project-local install
   const claudeDir = path.join(projectPath, ".claude");
   const destDir = path.join(claudeDir, "skills", name);
 
@@ -512,7 +663,8 @@ export async function addResource(
   name: string,
   projectPath: string,
   force: boolean,
-  goldenPath?: string
+  goldenPath?: string,
+  globalInstall?: boolean
 ): Promise<{ success: boolean; message: string }> {
   if (!resourceType) {
     return {
@@ -536,7 +688,7 @@ export async function addResource(
         return await addContextFile(goldenRepoPath, projectPath, name, force);
 
       case "skill":
-        return await addSkill(goldenRepoPath, projectPath, name, force);
+        return await addSkill(goldenRepoPath, projectPath, name, force, globalInstall);
 
       case "agent_example":
         return await addAgentExample(goldenRepoPath, projectPath, name, force);
@@ -752,6 +904,74 @@ async function syncSkills(
   }
 
   return results;
+}
+
+/**
+ * Sync globally installed skills by git pulling each one
+ */
+export async function syncGlobalSkills(
+  dryRun: boolean
+): Promise<{ success: boolean; message: string }> {
+  const { getInstalledSkills } = await import("./skills-state.js");
+  const { safeExec } = await import("../shared/exec-utils.js");
+  const installed = await getInstalledSkills();
+  const globalSkills = installed.filter(s => s.scope === "global");
+
+  if (globalSkills.length === 0) {
+    return {
+      success: true,
+      message: `No globally installed skills found.
+
+Install skills with: foundry_add type="skill" name="<skill-name>" global=true`,
+    };
+  }
+
+  const results: Array<{ name: string; status: string; message?: string }> = [];
+
+  for (const skill of globalSkills) {
+    const skillDir = path.join(CONFIG.skillsInstallDir, skill.name);
+    const skillExists = await directoryExists(skillDir);
+
+    if (!skillExists) {
+      results.push({ name: skill.name, status: "missing", message: "Directory not found" });
+      continue;
+    }
+
+    if (dryRun) {
+      results.push({ name: skill.name, status: "would-update" });
+      continue;
+    }
+
+    try {
+      await safeExec("git", ["pull", "--ff-only"], { cwd: skillDir });
+      results.push({ name: skill.name, status: "updated" });
+    } catch (err) {
+      results.push({
+        name: skill.name,
+        status: "error",
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  const modeLabel = dryRun ? " (DRY RUN)" : "";
+  let output = `Global Skill Sync${modeLabel}\n${"═".repeat(60)}\n\n`;
+
+  for (const r of results) {
+    const icon = r.status === "updated" ? "✓" : r.status === "error" ? "✗" : r.status === "missing" ? "!" : "~";
+    output += `${icon} ${r.name}`;
+    if (r.message) output += ` — ${r.message}`;
+    output += "\n";
+  }
+
+  const updated = results.filter(r => r.status === "updated").length;
+  const errors = results.filter(r => r.status === "error").length;
+  output += `\n${updated}/${globalSkills.length} updated`;
+  if (errors > 0) output += `, ${errors} errors`;
+
+  if (dryRun) output += "\n\nRun with dryRun=false to apply updates.";
+
+  return { success: errors === 0, message: output };
 }
 
 /**
