@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foundry MCP — Demo & Validation Script</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #21253a;
+      --border: #2d3148;
+      --text: #e2e8f0;
+      --muted: #8892a4;
+      --accent: #6c8ef7;
+      --accent-dim: #3d4f8a;
+      --green: #34d399;
+      --green-dim: #1a3a2e;
+      --yellow: #fbbf24;
+      --yellow-dim: #3a2e10;
+      --red: #f87171;
+      --red-dim: #3a1a1a;
+      --purple: #c084fc;
+      --code-bg: #0d1117;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #1a1d27 0%, #0d1420 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 36px 48px 28px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .header-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+
+    .header h1 span {
+      color: var(--accent);
+    }
+
+    .header .subtitle {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .progress-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 20px;
+      text-align: center;
+      min-width: 140px;
+      flex-shrink: 0;
+    }
+
+    .progress-count {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--green);
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .progress-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .progress-bar-wrap {
+      background: var(--border);
+      border-radius: 2px;
+      height: 4px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: var(--green);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    /* ── Nav pills ── */
+    .nav {
+      display: flex;
+      gap: 8px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    .nav a {
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      transition: all 0.15s;
+    }
+
+    .nav a:hover {
+      color: var(--text);
+      border-color: var(--accent-dim);
+      background: var(--surface2);
+    }
+
+    /* ── Layout ── */
+    .main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
+
+    /* ── Meta bar ── */
+    .meta-bar {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      margin-bottom: 32px;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .meta-item strong {
+      color: var(--text);
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-blue { background: var(--accent-dim); color: var(--accent); }
+    .badge-green { background: var(--green-dim); color: var(--green); }
+
+    /* ── Section ── */
+    .section {
+      margin-bottom: 48px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius) var(--radius) 0 0;
+      border-bottom: 2px solid var(--accent-dim);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .section-header:hover {
+      background: var(--surface2);
+    }
+
+    .section-number {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      flex: 1;
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .section-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .section-progress {
+      font-size: 12px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .section-progress.complete {
+      color: var(--green);
+    }
+
+    .section-chevron {
+      color: var(--muted);
+      font-size: 12px;
+      transition: transform 0.2s;
+    }
+
+    .section-chevron.open { transform: rotate(90deg); }
+
+    .section-body {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 var(--radius) var(--radius);
+      overflow: hidden;
+    }
+
+    .section-body.collapsed { display: none; }
+
+    /* ── Step ── */
+    .step {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .step:last-child { border-bottom: none; }
+
+    .step-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .step-num {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    /* ── Talking point ── */
+    .talking-point {
+      display: flex;
+      gap: 10px;
+      background: var(--surface2);
+      border-left: 3px solid var(--purple);
+      border-radius: 0 6px 6px 0;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      font-size: 13px;
+      color: #c4cad6;
+      font-style: italic;
+    }
+
+    .talking-point-icon {
+      font-style: normal;
+      flex-shrink: 0;
+    }
+
+    /* ── Code block ── */
+    .code-wrap {
+      margin: 12px 0;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #1e2433;
+    }
+
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #161b22;
+      padding: 6px 12px;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      letter-spacing: 0.3px;
+    }
+
+    .copy-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+
+    .copy-btn:hover {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .copy-btn.copied {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    pre {
+      background: var(--code-bg);
+      padding: 14px 16px;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-x: auto;
+      color: #c9d1d9;
+    }
+
+    pre .comment { color: #6e7681; }
+    pre .string { color: #a5d6ff; }
+    pre .keyword { color: #ff7b72; }
+    pre .flag { color: var(--yellow); }
+    pre .path { color: #ffa657; }
+
+    /* ── Expected output ── */
+    .expected {
+      background: #0d1117;
+      border: 1px solid #1e2433;
+      border-left: 3px solid var(--green-dim);
+      border-radius: 0 6px 6px 0;
+      padding: 10px 14px;
+      margin: 10px 0;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: #8b949e;
+      line-height: 1.6;
+    }
+
+    .expected-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--green);
+      font-family: inherit;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    /* ── Checkbox items ── */
+    .checklist {
+      list-style: none;
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .checklist label {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--muted);
+      transition: color 0.15s;
+      line-height: 1.5;
+    }
+
+    .checklist label:hover { color: var(--text); }
+
+    .checklist input[type="checkbox"] {
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      min-width: 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface2);
+      cursor: pointer;
+      position: relative;
+      margin-top: 2px;
+      transition: all 0.15s;
+    }
+
+    .checklist input[type="checkbox"]:hover {
+      border-color: var(--accent);
+    }
+
+    .checklist input[type="checkbox"]:checked {
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .checklist input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      left: 3px;
+      top: 1px;
+      width: 8px;
+      height: 5px;
+      border-left: 2px solid #0f1117;
+      border-bottom: 2px solid #0f1117;
+      transform: rotate(-45deg);
+    }
+
+    .checklist label.checked-label {
+      color: var(--green);
+      text-decoration: line-through;
+      text-decoration-color: var(--green-dim);
+    }
+
+    /* ── Note / Tip ── */
+    .note {
+      background: var(--yellow-dim);
+      border: 1px solid #4a3a10;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #d4a72c;
+      margin: 12px 0;
+      display: flex;
+      gap: 8px;
+    }
+
+    .note-icon { flex-shrink: 0; }
+
+    /* ── Callout ── */
+    .callout {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 16px;
+      font-size: 13px;
+      margin: 12px 0;
+    }
+
+    .callout p { margin-bottom: 6px; }
+    .callout p:last-child { margin-bottom: 0; }
+
+    /* ── Prereq list ── */
+    .prereq-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .prereq-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+    }
+
+    /* ── Summary table ── */
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 16px;
+    }
+
+    .summary-table th {
+      background: var(--surface2);
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .summary-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .summary-table tr:last-child td {
+      border-bottom: none;
+      font-weight: 600;
+    }
+
+    .summary-table .score {
+      font-variant-numeric: tabular-nums;
+      font-family: 'SF Mono', monospace;
+    }
+
+    .summary-table .score.all-pass { color: var(--green); }
+
+    /* ── Troubleshooting table ── */
+    .trouble-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+
+    .trouble-table th {
+      background: var(--surface2);
+      padding: 8px 12px;
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .trouble-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    .trouble-table tr:last-child td { border-bottom: none; }
+
+    .trouble-table .symptom {
+      font-family: 'SF Mono', monospace;
+      font-size: 12px;
+      color: var(--yellow);
+    }
+
+    .trouble-table .cause { color: var(--muted); }
+    .trouble-table .fix { color: var(--text); }
+
+    /* ── Inline code ── */
+    code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      background: #1e2433;
+      color: #a5d6ff;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    /* ── Version footer ── */
+    .footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 12px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      margin-top: 48px;
+    }
+
+    h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 14px 0 8px;
+    }
+
+    p { margin-bottom: 10px; }
+    p:last-child { margin-bottom: 0; }
+
+    /* ── Print ── */
+    @media print {
+      body { background: white; color: black; }
+      .header { position: static; background: white; border-bottom: 2px solid #333; }
+      .progress-box { border: 1px solid #ccc; }
+      .section-header { background: #f5f5f5; border-bottom: 2px solid #333; }
+      .section-body { border: 1px solid #ccc; }
+      pre { background: #f8f8f8; color: #333; border: 1px solid #ddd; }
+      .code-wrap { border: 1px solid #ddd; }
+      .code-header { background: #f0f0f0; }
+      .expected { background: #f8fff8; border-color: #ccc; color: #333; }
+      .talking-point { background: #f5f0ff; color: #333; }
+      .note { background: #fffbf0; color: #856404; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════════════ -->
+<div class="header">
+  <div class="header-top">
+    <div>
+      <h1><span>Foundry MCP</span> — Demo &amp; Validation Script</h1>
+      <p class="subtitle">Dual purpose: live team demo walkthrough + validation checklist for testing</p>
+    </div>
+    <div class="progress-box">
+      <div class="progress-count" id="progress-count">0</div>
+      <div class="progress-label">of 36 checked</div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+    </div>
+  </div>
+  <nav class="nav">
+    <a href="#prereqs">Prerequisites</a>
+    <a href="#part1">1 · Install</a>
+    <a href="#part2">2 · Golden Repo</a>
+    <a href="#part3">3 · Bootstrap</a>
+    <a href="#part4">4 · ServiceNow</a>
+    <a href="#part5">5 · Dry-Run</a>
+    <a href="#part6">6 · Contribute</a>
+    <a href="#summary">Summary</a>
+    <a href="#troubleshooting">Troubleshooting</a>
+  </nav>
+</div>
+
+<!-- ══ MAIN ══════════════════════════════════════════════════════════════ -->
+<div class="main">
+
+  <!-- Meta bar -->
+  <div class="meta-bar">
+    <div class="meta-item">⏱ <strong>~30 min</strong></div>
+    <div class="meta-item">🎯 <strong>AI Foundry team</strong></div>
+    <div class="meta-item">🔧 <span class="badge badge-blue">v2026.03.0910</span></div>
+    <div class="meta-item">🛠 <span class="badge badge-green">38 tools</span></div>
+    <div class="meta-item" style="margin-left:auto; color: var(--muted); font-size:12px;">
+      Purple = talking points &nbsp;·&nbsp; Green = expected output &nbsp;·&nbsp; ☑ = validation checkpoint
+    </div>
+  </div>
+
+  <!-- ── Prerequisites ───────────────────────────────────────────────── -->
+  <div class="section" id="prereqs">
+    <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-number">✓</div>
+      <div class="section-title">Prerequisites</div>
+      <div class="section-meta">before you start</div>
+      <div class="section-chevron open">▶</div>
+    </div>
+    <div class="section-body">
+      <div class="step">
+        <div class="prereq-grid">
+          <div class="prereq-item">
+            <input type="checkbox" id="p0" onchange="updateProgress()">
+            <label for="p0">Node.js 18+ &nbsp;<code>node --version</code></label>
+          </div>
+          <div class="prereq-item">
+            <input type="checkbox" id="p1" onchange="updateProgress()">
+            <label for="p1">GitHub CLI authenticated &nbsp;<code>gh auth status</code></label>
+          </div>
+          <div class="prereq-item">
+            <input type="checkbox" id="p2" onchange="updateProgress()">
+            <label for="p2">Claude Code installed &nbsp;<code>claude --version</code></label>
+          </div>
+          <div class="prereq-item">
+            <input type="checkbox" id="p3" onchange="updateProgress()">
+            <label for="p3">ServiceNow credentials ready (instance + user/pass)</label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Part 1: Install ─────────────────────────────────────────────── -->
+  <div class="section" id="part1">
+    <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-number">1</div>
+      <div class="section-title">Installation &amp; Configuration</div>
+      <div class="section-meta">~5 min</div>
+      <div class="section-progress" id="prog-part1">0 / 4</div>
+      <div class="section-chevron open">▶</div>
+    </div>
+    <div class="section-body">
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">1.1</span> Clone and Build</div>
+        <div class="talking-point"><span class="talking-point-icon">💬</span> "The MCP server lives in the Now-AI-Foundry GitHub org. One command to get it — GitHub CLI handles auth automatically."</div>
+        <div class="code-wrap">
+          <div class="code-header">bash <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>gh repo clone Now-AI-Foundry/tool-foundry-mcp ~/projects/tool-foundry-mcp
+cd ~/projects/tool-foundry-mcp
+npm install
+npm run build</pre>
+        </div>
+        <div class="code-wrap">
+          <div class="code-header">verify <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>ls dist/index.js   <span class="comment"># should print: dist/index.js</span></pre>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Build completed with no errors, <code>dist/index.js</code> present</label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">1.2</span> Register with Claude Code</div>
+        <div class="talking-point"><span class="talking-point-icon">💬</span> "Register once at user scope and it's available in every project — no per-project config needed."</div>
+        <div class="code-wrap">
+          <div class="code-header">bash <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre><span class="comment"># User scope — available in all Claude Code sessions</span>
+claude mcp add --scope user --transport stdio foundry -- \
+  node ~/projects/tool-foundry-mcp/dist/index.js
+
+claude mcp list</pre>
+        </div>
+        <div class="expected">
+          <span class="expected-label">expected</span>
+foundry   stdio   node ~/projects/tool-foundry-mcp/dist/index.js   ● connected
+        </div>
+        <div class="note">
+          <span class="note-icon">📌</span>
+          <div>For team-shared projects add a <code>.mcp.json</code> to the project root with <code>"args": ["/absolute/path/to/dist/index.js"]</code> instead.</div>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> <code>foundry</code> appears in <code>claude mcp list</code> as connected</label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">1.3</span> Set Up ServiceNow Credentials</div>
+        <div class="talking-point"><span class="talking-point-icon">💬</span> "Credentials are stored in the macOS Keychain — no plaintext passwords on disk. Supports multiple named profiles for dev, staging, and customer instances."</div>
+        <p style="font-size:13px; color:var(--muted); margin-bottom:10px;"><strong>Step A — Store password in macOS Keychain:</strong></p>
+        <div class="code-wrap">
+          <div class="code-header">bash <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>security add-internet-password -s your-instance.service-now.com -a admin -w</pre>
+        </div>
+        <p style="font-size:13px; color:var(--muted); margin:10px 0;"><strong>Step B — Create the credentials profile:</strong></p>
+        <div class="code-wrap">
+          <div class="code-header">bash <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>mkdir -p ~/.servicenow
+cat > ~/.servicenow/credentials.json &lt;&lt; 'EOF'
+{
+  "profiles": {
+    "dev": {
+      "instance": "your-instance.service-now.com",
+      "username": "admin",
+      "authType": "keychain"
+    }
+  }
+}
+EOF</pre>
+        </div>
+        <div class="note">
+          <span class="note-icon">📌</span>
+          <div>With <code>authType: "keychain"</code>, the password is retrieved from macOS Keychain at connect time — never stored in the JSON file.</div>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Password stored in macOS Keychain</label></li>
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> <code>~/.servicenow/credentials.json</code> created with <code>authType: "keychain"</code></label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">1.4</span> Restart Claude Code &amp; Verify</div>
+        <div class="talking-point"><span class="talking-point-icon">💬</span> "MCP servers start at session launch — always restart after registering a new one."</div>
+        <p style="font-size:13px; color:var(--muted); margin-bottom:10px;">Exit and relaunch Claude Code. In the new session:</p>
+        <div class="code-wrap">
+          <div class="code-header">claude code <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>/mcp</pre>
+        </div>
+        <div class="expected">
+          <span class="expected-label">expected</span>
+foundry  ● connected  38 tools available
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Claude Code restarted, <code>foundry</code> shows <strong>38 tools</strong> in <code>/mcp</code></label></li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Part 2: Golden Repo ─────────────────────────────────────────── -->
+  <div class="section" id="part2">
+    <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-number">2</div>
+      <div class="section-title">Explore the Golden Repository</div>
+      <div class="section-meta">~5 min</div>
+      <div class="section-progress" id="prog-part2">0 / 7</div>
+      <div class="section-chevron open">▶</div>
+    </div>
+    <div class="section-body">
+
+      <div class="step">
+        <div class="talking-point"><span class="talking-point-icon">💬</span> "The golden repo is the heart of Foundry — a curated library of ServiceNow/Now Assist context, skills, and project templates that get pre-loaded into every POC. It auto-caches to <code>~/.foundry/golden/</code> on first use."</div>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">2.1</span> Browse Available Templates</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>foundry_templates action="list"</pre>
+        </div>
+        <div class="expected">
+          <span class="expected-label">expected</span>
+📋 foundry-poc
+   Full POC kit — context, skills, and SPARC methodology
+   Context files: Yes  |  Skills: Yes
+
+📋 foundry-minimal
+   Bare-bones template with just CLAUDE.md
+   Context files: No   |  Skills: No
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Two templates listed: <code>foundry-poc</code> and <code>foundry-minimal</code></label></li>
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> No old names (<code>sparc-starter</code>, <code>standard</code>, <code>minimal</code>) — if you see these, restart Claude Code</label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">2.2</span> List All Resources</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>foundry_list type="all"</pre>
+        </div>
+        <p style="font-size:13px; color:var(--muted); margin:10px 0;">Spot-check these items are present:</p>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Context: <code>now-assist-platform</code>, <code>genai-framework</code>, <code>agentic-patterns</code> listed</label></li>
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Skills: <code>now-assist-skill-builder</code>, <code>api-integration</code>, <code>agent-builder</code> listed</label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">2.3</span> Search the Golden Repo</div>
+        <div class="talking-point"><span class="talking-point-icon">💬</span> "Search cuts across names, descriptions, and file content — great for discovery."</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>foundry_search query="GlideRecord"
+foundry_search query="authentication"</pre>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Both searches return relevant results with context snippets</label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">2.4</span> Deep Dive on a Resource</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>foundry_info type="context" name="now-assist-platform"
+foundry_info type="skill" name="now-assist-skill-builder"</pre>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Both return detailed descriptions and usage instructions</label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">2.5</span> Smart Context Suggestions</div>
+        <div class="talking-point"><span class="talking-point-icon">💬</span> "This reads your task and suggests relevant skills — like autocomplete for your toolbox."</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>foundry_check_context task_description="I need to create a Now Assist skill and deploy it to ServiceNow"</pre>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Suggests <code>now-assist-skill-builder</code> and related resources</label></li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Part 3: Bootstrap ───────────────────────────────────────────── -->
+  <div class="section" id="part3">
+    <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-number">3</div>
+      <div class="section-title">Bootstrap a POC Project</div>
+      <div class="section-meta">~5 min</div>
+      <div class="section-progress" id="prog-part3">0 / 7</div>
+      <div class="section-chevron open">▶</div>
+    </div>
+    <div class="section-body">
+
+      <div class="step">
+        <div class="talking-point"><span class="talking-point-icon">💬</span> "This is the main workflow — zero to fully configured POC in under a minute."</div>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">3.1</span> Create and Initialize</div>
+        <div class="code-wrap">
+          <div class="code-header">bash <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>mkdir ~/projects/my-poc
+cd ~/projects/my-poc</pre>
+        </div>
+        <p style="font-size:13px; color:var(--muted); margin:10px 0;">Start Claude Code <strong>from that directory</strong> and prompt:</p>
+        <div class="code-wrap">
+          <div class="code-header">claude code prompt <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>Initialize this Foundry POC project using the foundry-poc template.</pre>
+        </div>
+        <div class="note">
+          <span class="note-icon">📌</span>
+          <div><code>foundry_init</code> bootstraps the <strong>current directory</strong> — you must be inside the project folder before running it.</div>
+        </div>
+        <div class="expected">
+          <span class="expected-label">expected</span>
+Project "my-poc" initialized at ~/projects/my-poc
+
+Template: foundry-poc
+- Context: Now Assist platform, GenAI framework, Agentic patterns
+- Skills: Now Assist skill builder, API integration
+...
+Next steps:
+1. Review CLAUDE.md and update project details
+2. Start building with Claude Code!
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Project initialized successfully (files in current directory, not a subdirectory)</label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">3.2</span> Inspect What Was Created</div>
+        <div class="talking-point"><span class="talking-point-icon">💬</span> "Claude Code automatically reads everything in <code>.claude/</code> — context files give it domain knowledge, skills teach it workflows."</div>
+        <div class="code-wrap">
+          <div class="code-header">bash <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>find ~/projects/my-poc -not -path '*/\.*' | sort
+ls ~/projects/my-poc/.claude/context/
+ls ~/projects/my-poc/.claude/skills/</pre>
+        </div>
+        <div class="expected">
+          <span class="expected-label">expected structure</span>
+my-poc/
+├── CLAUDE.md
+├── .gitignore
+├── 00_Inbox/  (calls/, emails/, notes/)
+├── 01_Customers/
+├── 10_PromptTemplates/
+├── 20_Demo_Library/
+├── 99_Assets/
+└── .claude/
+    ├── context/   ← now-assist-platform.md, genai-framework.md, agentic-patterns.md
+    └── skills/    ← now-assist-skill-builder/, api-integration/
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> <code>CLAUDE.md</code> present and contains project name</label></li>
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> <code>.claude/context/</code> has at least 3 context files</label></li>
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> <code>.claude/skills/</code> has skill directories</label></li>
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> POC folder structure (00_Inbox through 99_Assets) present</label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">3.3</span> Add an Additional Resource</div>
+        <div class="talking-point"><span class="talking-point-icon">💬</span> "After init you can keep adding resources as your POC evolves — no need to re-initialize."</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>foundry_add type="context" name="security-patterns" projectPath="~/projects/my-poc"</pre>
+        </div>
+        <div class="code-wrap">
+          <div class="code-header">verify <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>ls ~/projects/my-poc/.claude/context/   <span class="comment"># security-patterns.md should appear</span></pre>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> <code>security-patterns.md</code> added to <code>.claude/context/</code></label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">3.4</span> Check for Updates</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>foundry_sync projectPath="~/projects/my-poc" dryRun=true</pre>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Sync dry-run returns without error, shows update status</label></li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Part 4: ServiceNow ──────────────────────────────────────────── -->
+  <div class="section" id="part4">
+    <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-number">4</div>
+      <div class="section-title">Connect to ServiceNow</div>
+      <div class="section-meta">~8 min</div>
+      <div class="section-progress" id="prog-part4">0 / 10</div>
+      <div class="section-chevron open">▶</div>
+    </div>
+    <div class="section-body">
+
+      <div class="step">
+        <div class="talking-point"><span class="talking-point-icon">💬</span> "Now let's connect to a live instance and explore the read-only introspection tools — this is what makes Claude a hands-on ServiceNow collaborator rather than just a code generator."</div>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">4.1</span> Connect</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>servicenow_connect profile="dev"</pre>
+        </div>
+        <div class="expected">
+          <span class="expected-label">expected</span>
+Connected to your-instance.service-now.com
+User: admin
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Connected successfully</label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">4.2</span> Verify Status &amp; Instance</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>servicenow_status
+servicenow_instance</pre>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Status shows active session with instance URL and user</label></li>
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Instance metadata returned (version, build)</label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">4.3</span> Query a Table</div>
+        <div class="talking-point"><span class="talking-point-icon">💬</span> "Any table, any filter, any fields — great for exploring data structure before building agents."</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>servicenow_query table="sys_user" query="active=true" fields=["user_name","name","email"] limit=5</pre>
+        </div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>servicenow_query table="sys_properties" query="nameLIKEglide.ui" fields=["name","value"] limit=5</pre>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> User query returns 5 records with requested fields</label></li>
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> System properties query returns results</label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">4.4</span> Run a Background Script</div>
+        <div class="talking-point"><span class="talking-point-icon">💬</span> "Background scripts for anything the REST API can't do — complex lookups, cross-table aggregations, on-the-fly calculations."</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>servicenow_script script="var count = new GlideAggregate('incident'); count.addAggregate('COUNT'); count.query(); count.next(); var total = count.getAggregate('COUNT'); var gr = new GlideAggregate('incident'); gr.addAggregate('COUNT'); gr.addQuery('state', 1); gr.query(); gr.next(); var newCount = gr.getAggregate('COUNT'); gs.info('Total incidents: ' + total); gs.info('New incidents: ' + newCount);"</pre>
+        </div>
+        <div class="note">
+          <span class="note-icon">💡</span>
+          <div>For instance version info, use <code>servicenow_instance</code> instead — it returns the full build tag directly.</div>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Script executes and returns incident counts</label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">4.5</span> Browse AI Agents</div>
+        <div class="talking-point"><span class="talking-point-icon">💬</span> "The AIA tools let Claude introspect the entire agentic layer — agents, use cases, flows, skills. Full read-only visibility."</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>servicenow_aia_list limit=10
+servicenow_aia_list status="active" limit=10</pre>
+        </div>
+        <div class="note">
+          <span class="note-icon">ℹ️</span>
+          <div>The <code>active</code> filter may use client-side fallback on some instances due to a REST ACL — this is expected and handled automatically.</div>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Agent list returned with name, status, strategy, tool count</label></li>
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Active filter returns results (server or client-side)</label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">4.6</span> Inspect an Agent</div>
+        <p style="font-size:13px; color:var(--muted); margin-bottom:10px;">Pick a <code>sys_id</code> from the previous list:</p>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>servicenow_aia_get agent="&lt;sys_id&gt;" includeTools=true includeStats=true</pre>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Agent details returned with full instructions, tool list, and execution stats</label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">4.7</span> Browse Use Cases &amp; Flows</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>servicenow_aia_usecase_list limit=5
+servicenow_flow_list name="LLM" limit=5</pre>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Use case list returned</label></li>
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Flow list returned (LLM filter)</label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">4.8</span> Inspect a Skill</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>servicenow_skill_list limit=10</pre>
+        </div>
+        <p style="font-size:13px; color:var(--muted); margin: 10px 0;">Pick a skill name from the output:</p>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>servicenow_skill_get skill="&lt;skill-name&gt;"</pre>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Skill list returned</label></li>
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Skill detail returned (prompt template, inputs, model config)</label></li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Part 5: Dry-Run Creation ────────────────────────────────────── -->
+  <div class="section" id="part5">
+    <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-number">5</div>
+      <div class="section-title">Dry-Run Creation</div>
+      <div class="section-meta">~5 min</div>
+      <div class="section-progress" id="prog-part5">0 / 6</div>
+      <div class="section-chevron open">▶</div>
+    </div>
+    <div class="section-body">
+
+      <div class="step">
+        <div class="talking-point"><span class="talking-point-icon">💬</span> "All creation tools support <code>dryRun=true</code> — shows exactly what would be built without touching the instance. Great for planning, reviewing with a customer, or catching problems before deployment."</div>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">5.1</span> Preview an AI Agent</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>servicenow_aia_create
+  agentName="Demo Support Agent"
+  agentDescription="Handles common IT support requests"
+  agentInstructions="You are an IT support agent. Help users resolve common issues."
+  agentRole="Support"
+  agentProficiency="Intermediate"
+  dryRun=true</pre>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Detailed build plan returned (no records created)</label></li>
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Verifying no record created: <code>servicenow_query table="sn_aia_agent" query="nameLIKEDemo Support Agent"</code> returns empty</label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">5.2</span> Forbidden API Detection</div>
+        <div class="talking-point"><span class="talking-point-icon">💬</span> "Foundry scans tool scripts for ServiceNow APIs that aren't allowed in Skills Kit tools — catches issues before you deploy and get a cryptic runtime error."</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>servicenow_aia_create
+  agentName="Test Agent"
+  agentDescription="Test"
+  agentInstructions="Test agent"
+  dryRun=true
+  tools=[{"name":"Risky Tool","description":"Uses gs.info","inputSchema":[],
+          "script":"(function(inputs) { gs.info('test'); return {}; })(inputs);"}]</pre>
+        </div>
+        <div class="expected">
+          <span class="expected-label">expected</span>
+⚠️  WARNING: Forbidden API detected in tool script
+    gs.info() is not available in Skills Kit execution context
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Forbidden API warning appears in dry-run output</label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">5.3</span> Preview a Skill (8-Phase Plan)</div>
+        <div class="talking-point"><span class="talking-point-icon">💬</span> "Skill creation is the most complex flow — 8 phases, ~24 API calls. The dry-run shows the full plan so you know exactly what's going to happen."</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>servicenow_skill_create
+  skillName="Demo Summarizer Skill"
+  description="Summarizes IT incident descriptions"
+  promptTemplate="Summarize this incident in 2-3 sentences: {{incident_description}}"
+  inputs=[{"name":"incident_description","label":"Incident Description",
+           "description":"The incident text to summarize"}]
+  dryRun=true</pre>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> All 8 phases referenced in dry-run output</label></li>
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Pre-flight sys_id lookups shown (role, skill family, LLM flow)</label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">5.4</span> Disconnect</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>servicenow_disconnect</pre>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Session terminated successfully</label></li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Part 6: Contribute ──────────────────────────────────────────── -->
+  <div class="section" id="part6">
+    <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-number">6</div>
+      <div class="section-title">Contribute Back (Overview)</div>
+      <div class="section-meta">~2 min</div>
+      <div class="section-progress" id="prog-part6">0 / 2</div>
+      <div class="section-chevron open">▶</div>
+    </div>
+    <div class="section-body">
+
+      <div class="step">
+        <div class="talking-point"><span class="talking-point-icon">💬</span> "The contribution workflow is how the golden repo grows. Build something useful in a POC, validate it, and promote it back — everyone on the team benefits immediately."</div>
+        <div class="callout">
+          <p><strong>The flow:</strong></p>
+          <p><code>foundry_new</code> → scaffold &nbsp;·&nbsp; <code>foundry_validate</code> → quality check &nbsp;·&nbsp; <code>foundry_promote</code> → PR to golden repo</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">6.1</span> Scaffold a New Resource</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>foundry_new type="skill" name="my-new-skill" description="Does something useful" projectPath="~/projects/my-poc"</pre>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Skill directory and starter files created in <code>.claude/skills/</code></label></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-num">6.2</span> Validate Before Promoting</div>
+        <div class="code-wrap">
+          <div class="code-header">mcp tool <button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+          <pre>foundry_validate type="skill" name="my-new-skill" projectPath="~/projects/my-poc"</pre>
+        </div>
+        <div class="note">
+          <span class="note-icon">📌</span>
+          <div>Skip <code>foundry_promote</code> during testing — it creates a real GitHub PR on the golden repo.</div>
+        </div>
+        <ul class="checklist">
+          <li><label><input type="checkbox" onchange="updateProgress(this)"> Validate runs quality checks (warnings expected for starter template)</label></li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Summary ────────────────────────────────────────────────────── -->
+  <div class="section" id="summary">
+    <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-number">✓</div>
+      <div class="section-title">Validation Summary</div>
+      <div class="section-chevron open">▶</div>
+    </div>
+    <div class="section-body">
+      <div class="step">
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th>Section</th>
+              <th>Checkboxes</th>
+              <th>Target</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Prerequisites</td>
+              <td class="score" id="s-prereqs">—</td>
+              <td>4</td>
+              <td id="st-prereqs">—</td>
+            </tr>
+            <tr>
+              <td>Part 1 · Installation</td>
+              <td class="score" id="s-part1">—</td>
+              <td>4</td>
+              <td id="st-part1">—</td>
+            </tr>
+            <tr>
+              <td>Part 2 · Golden Repo</td>
+              <td class="score" id="s-part2">—</td>
+              <td>7</td>
+              <td id="st-part2">—</td>
+            </tr>
+            <tr>
+              <td>Part 3 · Bootstrap</td>
+              <td class="score" id="s-part3">—</td>
+              <td>7</td>
+              <td id="st-part3">—</td>
+            </tr>
+            <tr>
+              <td>Part 4 · ServiceNow</td>
+              <td class="score" id="s-part4">—</td>
+              <td>10</td>
+              <td id="st-part4">—</td>
+            </tr>
+            <tr>
+              <td>Part 5 · Dry-Run Creation</td>
+              <td class="score" id="s-part5">—</td>
+              <td>6</td>
+              <td id="st-part5">—</td>
+            </tr>
+            <tr>
+              <td>Part 6 · Contribute</td>
+              <td class="score" id="s-part6">—</td>
+              <td>2</td>
+              <td id="st-part6">—</td>
+            </tr>
+            <tr>
+              <td><strong>Total</strong></td>
+              <td class="score all-pass" id="s-total">0 / 36</td>
+              <td><strong>36</strong></td>
+              <td id="st-total">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Troubleshooting ─────────────────────────────────────────────── -->
+  <div class="section" id="troubleshooting">
+    <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-number">?</div>
+      <div class="section-title">Troubleshooting Quick Reference</div>
+      <div class="section-chevron open">▶</div>
+    </div>
+    <div class="section-body">
+      <div class="step">
+        <table class="trouble-table">
+          <thead>
+            <tr>
+              <th>Symptom</th>
+              <th>Likely Cause</th>
+              <th>Fix</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="symptom">Templates show old names<br>(sparc-starter, standard, minimal)</td>
+              <td class="cause">Stale MCP server process from before rebuild</td>
+              <td class="fix">Restart Claude Code completely — the new binary loads on next launch</td>
+            </tr>
+            <tr>
+              <td class="symptom">foundry not in /mcp</td>
+              <td class="cause">Not registered or wrong path in mcp add</td>
+              <td class="fix">Re-run <code>claude mcp add</code> with the correct absolute path to <code>dist/index.js</code></td>
+            </tr>
+            <tr>
+              <td class="symptom">foundry_list returns empty</td>
+              <td class="cause">Golden repo not cached yet; gh not authenticated</td>
+              <td class="fix">Run <code>gh auth login</code> then retry — first call auto-clones to <code>~/.foundry/golden/</code></td>
+            </tr>
+            <tr>
+              <td class="symptom">servicenow_connect fails</td>
+              <td class="cause">Wrong credentials or instance URL in credentials file</td>
+              <td class="fix">Check <code>~/.servicenow/credentials.json</code> and verify Keychain entry: <code>security find-internet-password -s your-instance.service-now.com -a admin</code></td>
+            </tr>
+            <tr>
+              <td class="symptom">aia_list ACL error</td>
+              <td class="cause">Field-level REST ACL on <code>active</code> column</td>
+              <td class="fix">Expected on some instances — tool falls back to client-side filter automatically, no action needed</td>
+            </tr>
+            <tr>
+              <td class="symptom">servicenow_script returns empty</td>
+              <td class="cause">Wrong application scope (keynexus instances)</td>
+              <td class="fix">In ServiceNow UI, set active application to <strong>Global</strong></td>
+            </tr>
+            <tr>
+              <td class="symptom">foundry_promote fails</td>
+              <td class="cause">GitHub CLI not authenticated to Now-AI-Foundry org</td>
+              <td class="fix">Run <code>gh auth login</code> and ensure you have org access</td>
+            </tr>
+            <tr>
+              <td class="symptom">38 tools not showing; fewer shown</td>
+              <td class="cause">MCP server running old binary</td>
+              <td class="fix">Restart Claude Code to reload the MCP server process</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Last updated: 2026-03-10 &nbsp;·&nbsp; MCP Server <strong>v2026.03.0910</strong> &nbsp;·&nbsp; 38 tools &nbsp;·&nbsp; 13 phases
+  </div>
+
+</div><!-- /main -->
+
+<script>
+  const TOTAL = 36;
+
+  function updateProgress(checkbox) {
+    if (checkbox) {
+      const label = checkbox.closest('label');
+      if (label) label.classList.toggle('checked-label', checkbox.checked);
+    }
+
+    const allBoxes = document.querySelectorAll('input[type="checkbox"]');
+    const checked = Array.from(allBoxes).filter(cb => cb.checked).length;
+
+    document.getElementById('progress-count').textContent = checked;
+    document.getElementById('progress-bar').style.width = (checked / TOTAL * 100) + '%';
+
+    // Update section progress
+    updateSectionProgress('prereqs', '#prereqs input[type="checkbox"]', 4);
+    updateSectionProgress('part1', '#part1 input[type="checkbox"]', 4);
+    updateSectionProgress('part2', '#part2 input[type="checkbox"]', 7);
+    updateSectionProgress('part3', '#part3 input[type="checkbox"]', 7);
+    updateSectionProgress('part4', '#part4 input[type="checkbox"]', 10);
+    updateSectionProgress('part5', '#part5 input[type="checkbox"]', 6);
+    updateSectionProgress('part6', '#part6 input[type="checkbox"]', 2);
+
+    // Summary table
+    updateSummaryRow('prereqs', '#prereqs input[type="checkbox"]', 4);
+    updateSummaryRow('part1', '#part1 input[type="checkbox"]', 4);
+    updateSummaryRow('part2', '#part2 input[type="checkbox"]', 7);
+    updateSummaryRow('part3', '#part3 input[type="checkbox"]', 7);
+    updateSummaryRow('part4', '#part4 input[type="checkbox"]', 10);
+    updateSummaryRow('part5', '#part5 input[type="checkbox"]', 6);
+    updateSummaryRow('part6', '#part6 input[type="checkbox"]', 2);
+
+    const totalEl = document.getElementById('s-total');
+    totalEl.textContent = checked + ' / ' + TOTAL;
+    totalEl.className = 'score' + (checked === TOTAL ? ' all-pass' : '');
+    document.getElementById('st-total').textContent = checked === TOTAL ? '✅ Complete' : checked + ' remaining';
+    document.getElementById('st-total').style.color = checked === TOTAL ? 'var(--green)' : 'var(--muted)';
+  }
+
+  function updateSectionProgress(id, selector, total) {
+    const boxes = document.querySelectorAll(selector);
+    const checked = Array.from(boxes).filter(cb => cb.checked).length;
+    const el = document.getElementById('prog-' + id);
+    if (!el) return;
+    el.textContent = checked + ' / ' + total;
+    el.className = 'section-progress' + (checked === total ? ' complete' : '');
+  }
+
+  function updateSummaryRow(id, selector, total) {
+    const boxes = document.querySelectorAll(selector);
+    const checked = Array.from(boxes).filter(cb => cb.checked).length;
+    const scoreEl = document.getElementById('s-' + id);
+    const statusEl = document.getElementById('st-' + id);
+    if (!scoreEl) return;
+    scoreEl.textContent = checked + ' / ' + total;
+    scoreEl.className = 'score' + (checked === total ? ' all-pass' : '');
+    statusEl.textContent = checked === total ? '✅ Pass' : checked > 0 ? '🔄 In progress' : '—';
+    statusEl.style.color = checked === total ? 'var(--green)' : checked > 0 ? 'var(--yellow)' : 'var(--muted)';
+  }
+
+  function toggleSection(header) {
+    const body = header.nextElementSibling;
+    const chevron = header.querySelector('.section-chevron');
+    body.classList.toggle('collapsed');
+    chevron.classList.toggle('open', !body.classList.contains('collapsed'));
+  }
+
+  function copyCode(btn) {
+    const pre = btn.closest('.code-wrap').querySelector('pre');
+    const text = pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+
+  // Init labels for any pre-checked boxes
+  document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', () => updateProgress(cb));
+    const label = cb.closest('label');
+    if (label && cb.checked) label.classList.add('checked-label');
+  });
+
+  updateProgress();
+</script>
+</body>
+</html>
